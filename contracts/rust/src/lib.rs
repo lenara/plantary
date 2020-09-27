@@ -53,37 +53,30 @@ pub trait NEP4 {
 pub type TokenId = u64;
 pub type AccountIdHash = Vec<u8>;
 
-
-
 ///
 /// the veggie section
+/// veggie is like a superclass of both plant and harvest.
+/// (not necessarily the right way to do this in rust, i'm still learning ...)
 ///
+
+const PLANT_TYPE:&str = "plant";
+const HARVEST_TYPE:&str = "harvest";
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Veggie {
     pub id: TokenId,
-    pub name: String,
-    pub quote: String,
-    pub color: String,
-    pub background_color: String,
-    pub rate: String,
-    pub sausage: u64,
-    pub sender: AccountId,
-    pub message: String,
+    pub vtype: String,
+    pub vsubtype: String,
+    pub parent: TokenId,
 }
 
 impl Veggie {
-    pub fn new(id: TokenId, name: String, color: String, background_color: String, quote:String) -> Self {
+    pub fn new(id: TokenId, vtype: String, vsubtype: String) -> Self {
         Self {
             id: id,
-            name: name,
-            quote: quote,
-            color: color,
-            background_color: background_color,
-            rate: "fast".to_string(),
-            sausage: 665,
-            sender: env::predecessor_account_id(), // TODO: what is predecessor exactly in NEAR?
-            message: "up yours punk!".to_string(),
+            vtype: vtype,
+            vsubtype: vsubtype,
+            parent: 0,
         }
     }
 }
@@ -93,15 +86,13 @@ impl Veggie {
 
 pub trait Veggies {
     fn create_veggie(&mut self, 
-                    name: String,
-                    color: String,
-                    background_color: String,
-                    quote: String
+                    vtype: String,
+                    vsubtype: String,
                     ) -> Veggie;
 
-    fn get_veggie(&self, cid: TokenId) -> Veggie;
+    fn get_veggie(&self, vid: TokenId) -> Veggie;
 
-    fn delete_veggie(&mut self, cid: TokenId);
+    fn delete_veggie(&mut self, vid: TokenId);
 }
 
 // veggie implementation
@@ -109,13 +100,11 @@ pub trait Veggies {
 
 impl Veggies for NonFungibleTokenBasic {
     fn create_veggie(&mut self, 
-                    name: String,
-                    color: String,
-                    background_color: String,
-                    quote: String
+                    vtype: String,
+                    vsubtype: String,
                     ) -> Veggie {
         // make a local veggie
-        let c = Veggie::new(self.gen_token_id(), name, color, background_color, quote);
+        let c = Veggie::new(self.gen_token_id(), vtype, vsubtype);
         // record in the static list of veggies
         self.veggies.insert(&c.id, &c);
         // record ownership in the nft structure
@@ -123,9 +112,9 @@ impl Veggies for NonFungibleTokenBasic {
         return c;
     }
 
-    fn get_veggie(&self, cid: TokenId) -> Veggie {
+    fn get_veggie(&self, vid: TokenId) -> Veggie {
         // TODO: check perms?
-        let veggie = match self.veggies.get(&cid) {
+        let veggie = match self.veggies.get(&vid) {
             Some(c) => {
                 c
             },
@@ -136,14 +125,95 @@ impl Veggies for NonFungibleTokenBasic {
         return veggie;
     }
 
-    fn delete_veggie(&mut self, cid: TokenId) {
+    fn delete_veggie(&mut self, vid: TokenId) {
         // TODO: check perms?
         // delete from global list
-        self.veggies.remove(&cid);
+        self.veggies.remove(&vid);
         // remove from ownership
-        self.token_to_account.remove(&cid);
+        self.token_to_account.remove(&vid);
     }
 }
+
+/// end Veggie section
+
+/// the Plant section, which delegates everything to Veggie
+///
+pub trait Plants {
+    fn create_plant(&mut self, 
+                    vsubtype: String,
+                    )->Veggie;
+
+    fn get_plant(&self, vid: TokenId) -> Veggie;
+
+    fn delete_plant(&mut self, vid: TokenId);
+
+}
+
+impl Plants for NonFungibleTokenBasic {
+    fn create_plant(&mut self,
+                    vsubtype: String,
+                    ) -> Veggie {
+        return self.create_veggie(PLANT_TYPE.to_string(), vsubtype);
+    }
+
+    fn get_plant(&self, vid: TokenId) -> Veggie {
+        return self.get_veggie(vid);
+    }
+
+    fn delete_plant(&mut self, vid: TokenId){
+        return self.delete_veggie(vid);
+    }
+}
+
+/*
+pub trait Plant {
+    fn harvest(&mut self) -> Veggie;
+}
+
+impl Plant for NonFungibleTokenBasic {
+    // plant.harvest() a plant gives birth to a harvest
+    // (harvest in this case is a verb.)
+    fn harvest(&mut self) -> Veggie {
+        // TODO: work out the types of harvest for each type of plant
+        let mut h = self.create_harvest("generic harvest".to_string());
+        h.parent = self.id;
+        return h;
+    }
+}
+*/
+
+/// end Plant section
+
+/// the Harvest section, which also delegates everything to Veggie
+///
+
+pub trait Harvests {
+    fn create_harvest(&mut self,
+                    vsubtype: String,
+                    )->Veggie;
+
+    fn get_harvest(&self, vid: TokenId) -> Veggie;
+
+    fn delete_harvest(&mut self, vid: TokenId);
+}
+
+impl Harvests for NonFungibleTokenBasic {
+    fn create_harvest(&mut self,
+                    vsubtype: String,
+                    ) -> Veggie {
+        return self.create_veggie(HARVEST_TYPE.to_string(), vsubtype);
+    }
+
+    fn get_harvest(&self, vid: TokenId) -> Veggie {
+        return self.get_veggie(vid);
+    }
+
+    fn delete_harvest(&mut self, vid: TokenId){
+        return self.delete_veggie(vid);
+    }
+}
+
+/// end Harvest section
 
 // Begin implementation
 #[near_bindgen]
@@ -514,7 +584,7 @@ mod tests {
         let mut contract = NonFungibleTokenBasic::new(robert());
 
             // create
-        let tc = contract.create_veggie("test".to_string(), "test".to_string(), "test".to_string(), "test".to_string());
+        let tc = contract.create_veggie(PLANT_TYPE.to_string(), "generic".to_string());
         contract.delete_veggie(tc.id); // TODO: veggie should have own methods? so like tc.burn() ...
     }
 }
