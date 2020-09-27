@@ -1,5 +1,13 @@
 #![deny(warnings)]
 
+///
+/// Plantary NFT Smart Contract
+/// adapted from https://github.com/near-examples/NFT by mykle
+///
+/// Implements blockchain ledger for plants and their fruit
+///
+
+
 use borsh::{BorshDeserialize, BorshSerialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
@@ -45,8 +53,14 @@ pub trait NEP4 {
 pub type TokenId = u64;
 pub type AccountIdHash = Vec<u8>;
 
+
+
+///
+/// the veggie section
+///
+
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct Corgi {
+pub struct Veggie {
     pub id: TokenId,
     pub name: String,
     pub quote: String,
@@ -58,7 +72,7 @@ pub struct Corgi {
     pub message: String,
 }
 
-impl Corgi {
+impl Veggie {
     pub fn new(id: TokenId, name: String, color: String, background_color: String, quote:String) -> Self {
         Self {
             id: id,
@@ -72,23 +86,63 @@ impl Corgi {
             message: "up yours punk!".to_string(),
         }
     }
-
 }
 
-// corgi traits
+// veggie traits
 //
 
-pub trait Corgis {
-    fn create_corgi(&mut self, 
+pub trait Veggies {
+    fn create_veggie(&mut self, 
                     name: String,
                     color: String,
                     background_color: String,
                     quote: String
-                    ) -> Corgi;
+                    ) -> Veggie;
 
-    fn get_corgi(&self, cid: TokenId) -> Corgi;
+    fn get_veggie(&self, cid: TokenId) -> Veggie;
 
-    fn delete_corgi(&mut self, cid: TokenId);
+    fn delete_veggie(&mut self, cid: TokenId);
+}
+
+// veggie implementation
+//
+
+impl Veggies for NonFungibleTokenBasic {
+    fn create_veggie(&mut self, 
+                    name: String,
+                    color: String,
+                    background_color: String,
+                    quote: String
+                    ) -> Veggie {
+        // make a local veggie
+        let c = Veggie::new(self.gen_token_id(), name, color, background_color, quote);
+        // record in the static list of veggies
+        self.veggies.insert(&c.id, &c);
+        // record ownership in the nft structure
+        self.mint_token(env::predecessor_account_id(), c.id);
+        return c;
+    }
+
+    fn get_veggie(&self, cid: TokenId) -> Veggie {
+        // TODO: check perms?
+        let veggie = match self.veggies.get(&cid) {
+            Some(c) => {
+                c
+            },
+            None => {
+                env::panic(b"Access does not exist.") // TODO: find pattern for throwing exception
+            }
+        };
+        return veggie;
+    }
+
+    fn delete_veggie(&mut self, cid: TokenId) {
+        // TODO: check perms?
+        // delete from global list
+        self.veggies.remove(&cid);
+        // remove from ownership
+        self.token_to_account.remove(&cid);
+    }
 }
 
 // Begin implementation
@@ -99,7 +153,7 @@ pub struct NonFungibleTokenBasic {
     pub account_gives_access: UnorderedMap<AccountIdHash, UnorderedSet<AccountIdHash>>, // Vec<u8> is sha256 of account, makes it safer and is how fungible token also works
     pub owner_id: AccountId,
 
-    pub corgis: UnorderedMap<TokenId, Corgi>,
+    pub veggies: UnorderedMap<TokenId, Veggie>,
 }
 
 impl Default for NonFungibleTokenBasic {
@@ -118,7 +172,7 @@ impl NonFungibleTokenBasic {
             token_to_account: UnorderedMap::new(b"token-belongs-to".to_vec()),
             account_gives_access: UnorderedMap::new(b"gives-access".to_vec()),
             owner_id,
-            corgis: UnorderedMap::new(b"corgis".to_vec()),
+            veggies: UnorderedMap::new(b"veggies".to_vec()),
         }
     }
 
@@ -127,45 +181,6 @@ impl NonFungibleTokenBasic {
         let id: TokenId = rng.gen();
         // TODO: test that it doesn't already exist.
         return id; 
-    }
-}
-
-//#[near_bindgen]
-impl Corgis for NonFungibleTokenBasic {
-    fn create_corgi(&mut self, 
-                    name: String,
-                    color: String,
-                    background_color: String,
-                    quote: String
-                    ) -> Corgi {
-        // make a local corgi 
-        let c = Corgi::new(self.gen_token_id(), name, color, background_color, quote);
-        // record in the static list of corgis
-        self.corgis.insert(&c.id, &c);
-        // record ownership in the nft structure
-        self.mint_token(env::predecessor_account_id(), c.id);
-        return c;
-    }
-
-    fn get_corgi(&self, cid: TokenId) -> Corgi {
-        // TODO: check perms?
-        let corgi = match self.corgis.get(&cid) {
-            Some(c) => {
-                c
-            },
-            None => {
-                env::panic(b"Access does not exist.") // TODO: find pattern for throwing exception
-            }
-        };
-        return corgi;
-    }
-
-    fn delete_corgi(&mut self, cid: TokenId) {
-        // TODO: check perms?
-        // delete from global list
-        self.corgis.remove(&cid);
-        // remove from ownership
-        self.token_to_account.remove(&cid);
     }
 }
 
@@ -494,12 +509,12 @@ mod tests {
     }
 
     #[test]
-    fn create_delete_corgi() {
+    fn create_delete_veggie() {
         testing_env!(get_context(robert(), 0));
         let mut contract = NonFungibleTokenBasic::new(robert());
 
             // create
-        let tc = contract.create_corgi("test".to_string(), "test".to_string(), "test".to_string(), "test".to_string());
-        contract.delete_corgi(tc.id); // TODO: corgi should have own methods? so like tc.burn() ...
+        let tc = contract.create_veggie("test".to_string(), "test".to_string(), "test".to_string(), "test".to_string());
+        contract.delete_veggie(tc.id); // TODO: veggie should have own methods? so like tc.burn() ...
     }
 }
