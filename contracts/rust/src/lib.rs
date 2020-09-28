@@ -52,6 +52,7 @@ pub trait NEP4 {
 /// The token ID type is also defined in the NEP
 pub type TokenId = u64;
 pub type AccountIdHash = Vec<u8>;
+pub type VeggieType = i8;
 
 ///
 /// the veggie section
@@ -59,24 +60,27 @@ pub type AccountIdHash = Vec<u8>;
 /// (not necessarily the right way to do this in rust, i'm still learning ...)
 ///
 
-const PLANT_TYPE:&str = "plant";
-const HARVEST_TYPE:&str = "harvest";
 
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct Veggie {
     pub id: TokenId,
-    pub vtype: String,
+    pub vtype: VeggieType,
     pub vsubtype: String,
     pub parent: TokenId,
 }
 
 impl Veggie {
-    pub fn new(id: TokenId, vtype: String, vsubtype: String) -> Self {
+    pub const VTYPE_PLANT: VeggieType = 1;
+    pub const VTYPE_HARVEST: VeggieType = 1;
+
+    pub fn new(id: TokenId, vtype: VeggieType, vsubtype: String) -> Self {
         Self {
             id: id,
-            vtype: vtype,
+            vtype: vtype,           // plant or harvest 
             vsubtype: vsubtype,
             parent: 0,
+            // dna ...
+            // rarity ...
         }
     }
 }
@@ -86,7 +90,7 @@ impl Veggie {
 
 pub trait Veggies {
     fn create_veggie(&mut self, 
-                    vtype: String,
+                    vtype: VeggieType,
                     vsubtype: String,
                     ) -> Veggie;
 
@@ -100,7 +104,7 @@ pub trait Veggies {
 
 impl Veggies for NonFungibleTokenBasic {
     fn create_veggie(&mut self, 
-                    vtype: String,
+                    vtype: VeggieType,
                     vsubtype: String,
                     ) -> Veggie {
         // make a local veggie
@@ -119,7 +123,7 @@ impl Veggies for NonFungibleTokenBasic {
                 c
             },
             None => {
-                env::panic(b"Access does not exist.") // TODO: find pattern for throwing exception
+                env::panic(b"Veggie does not exist.") // TODO: find pattern for throwing exception
             }
         };
         return veggie;
@@ -153,7 +157,8 @@ impl Plants for NonFungibleTokenBasic {
     fn create_plant(&mut self,
                     vsubtype: String,
                     ) -> Veggie {
-        return self.create_veggie(PLANT_TYPE.to_string(), vsubtype);
+        //return self.create_veggie(PLANT_TYPE.to_string(), vsubtype);
+        return self.create_veggie(Veggie::VTYPE_PLANT, vsubtype);
     }
 
     fn get_plant(&self, vid: TokenId) -> Veggie {
@@ -165,23 +170,6 @@ impl Plants for NonFungibleTokenBasic {
     }
 }
 
-/*
-pub trait Plant {
-    fn harvest(&mut self) -> Veggie;
-}
-
-impl Plant for NonFungibleTokenBasic {
-    // plant.harvest() a plant gives birth to a harvest
-    // (harvest in this case is a verb.)
-    fn harvest(&mut self) -> Veggie {
-        // TODO: work out the types of harvest for each type of plant
-        let mut h = self.create_harvest("generic harvest".to_string());
-        h.parent = self.id;
-        return h;
-    }
-}
-*/
-
 /// end Plant section
 
 /// the Harvest section, which also delegates everything to Veggie
@@ -192,24 +180,41 @@ pub trait Harvests {
                     vsubtype: String,
                     )->Veggie;
 
-    fn get_harvest(&self, vid: TokenId) -> Veggie;
+    fn get_harvest(self, vid: TokenId) -> Veggie;
 
     fn delete_harvest(&mut self, vid: TokenId);
+
+    fn harvest_plant(&mut self, parent: Veggie) -> Veggie;
 }
 
 impl Harvests for NonFungibleTokenBasic {
     fn create_harvest(&mut self,
                     vsubtype: String,
                     ) -> Veggie {
-        return self.create_veggie(HARVEST_TYPE.to_string(), vsubtype);
+        return self.create_veggie(Veggie::VTYPE_HARVEST, vsubtype);
     }
 
-    fn get_harvest(&self, vid: TokenId) -> Veggie {
+    fn get_harvest(self, vid: TokenId) -> Veggie {
         return self.get_veggie(vid);
     }
 
     fn delete_harvest(&mut self, vid: TokenId){
         return self.delete_veggie(vid);
+    }
+
+    // harvest_plant() a plant veggie gives birth to a harvest veggie
+    // (harvest in this case is a verb.)
+    //
+    fn harvest_plant(&mut self, parent: Veggie) -> Veggie {
+        // Assert: parent is a plant
+        //if parent.vtype != PLANT_TYPE.to_string() {
+        if parent.vtype != Veggie::VTYPE_PLANT {
+            env::panic(b"non-plant harvest");
+        }
+        // TODO: enumerate all the types of harvest for each type of plant
+        let mut h = self.create_harvest("generic harvest".to_string());
+        h.parent = parent.id;
+        return h;
     }
 }
 
@@ -579,12 +584,40 @@ mod tests {
     }
 
     #[test]
+    #[should_panic(
+        expected = r#"Veggie does not exist."#
+    )]
     fn create_delete_veggie() {
         testing_env!(get_context(robert(), 0));
         let mut contract = NonFungibleTokenBasic::new(robert());
 
             // create
-        let tc = contract.create_veggie(PLANT_TYPE.to_string(), "generic".to_string());
-        contract.delete_veggie(tc.id); // TODO: veggie should have own methods? so like tc.burn() ...
+        //let tc = contract.create_veggie(PLANT_TYPE.to_string(), "generic".to_string());
+        let tc = contract.create_veggie(Veggie::VTYPE_PLANT, "generic".to_string());
+            // inspect?
+        let tcid = tc.id;
+        assert_eq!(tc.vsubtype, "generic".to_string(), "subtype not found.");
+            // delete
+        contract.delete_veggie(tcid); // TODO: veggie should have own methods? so like tc.burn() ...
+            // confirm deleted
+        let _notc = contract.get_veggie(tcid); // should panic
     }
+
+    /*
+    #[test]
+    fn create_delete_plant(){
+        testing_env!(get_context(robert(), 0));
+        let mut contract = NonFungibleTokenBasic::new(robert());
+
+        let tc = contract.create_plant("generic")
+    }
+
+    #[test]
+    fn harvest_plant(){
+    }
+
+    #[test]
+    fn transfer_veggies(){
+    }
+    */
 }
