@@ -57,13 +57,17 @@ pub type VeggieSubType = i8;
 pub type PlantType = VeggieSubType;
 pub type HarvestType = VeggieSubType;
 
+// TODO: these should be defined once for both server and client sides --
+// what is a resource type for that?
 const VTYPE_PLANT: VeggieType = 1;
 const VTYPE_HARVEST: VeggieType = 2;
 
-const PTYPE_GENERIC: PlantType = 0;
+//const PTYPE_GENERIC: PlantType = 0;
 //const PTYPE_ORACLE: PlantType = 1;
 //const PTYPE_PORTRAIT: PlantType = 2;
 //const PTYPE_MONEY: PlantType = 3;
+
+const HTYPE_GENERIC: HarvestType = 0;
 
 ///
 /// the veggie section
@@ -194,7 +198,7 @@ pub trait Harvests {
 
     fn delete_harvest(&mut self, vid: TokenId);
 
-    fn harvest_plant(&mut self, parent: Veggie) -> Veggie;
+    fn harvest_plant(&mut self, parent: &Veggie) -> Veggie;
 }
 
 impl Harvests for NonFungibleTokenBasic {
@@ -212,16 +216,15 @@ impl Harvests for NonFungibleTokenBasic {
         return self.delete_veggie(vid);
     }
 
-    // harvest_plant() a plant veggie gives birth to a harvest veggie
+    // harvest_plant() here, a plant veggie gives birth to a harvest veggie
     // (harvest in this case is a verb.)
-    //
-    fn harvest_plant(&mut self, parent: Veggie) -> Veggie {
+    fn harvest_plant(&mut self, parent: &Veggie) -> Veggie {
         // Assert: parent is a plant
         if parent.vtype != VTYPE_PLANT {
             env::panic(b"non-plant harvest");
         }
-        // TODO: enumerate all the types of harvest for each type of plant
-        let mut h = self.create_harvest(PTYPE_GENERIC);
+        // TODO: for every plant type there is a set of allowed harvest types, or none allowed)
+        let mut h = self.create_harvest(HTYPE_GENERIC);
         h.parent = parent.id;
         return h;
     }
@@ -377,6 +380,8 @@ mod tests {
     use super::*;
     use near_sdk::MockedBlockchain;
     use near_sdk::{testing_env, VMContext};
+
+    const PTYPE_GENERIC: PlantType = 0;
 
     fn joe() -> AccountId {
         "joe.testnet".to_string()
@@ -642,11 +647,19 @@ mod tests {
             let _nop = contract.get_plant(p.id); // should panic
         }
 
-        /*
         #[test]
         fn harvest_plant(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = NonFungibleTokenBasic::new(robert());
+
+                // create
+            let p = contract.create_plant(PTYPE_GENERIC);
+            let h = contract.harvest_plant(&p);
+                // inspect
+            assert_eq!(p.id, h.parent, "parentage suspect");
         }
 
+        /*
         #[test]
         fn transfer_veggies(){
         }
