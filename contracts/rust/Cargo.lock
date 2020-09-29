@@ -277,18 +277,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "nep4-rs"
-version = "0.1.0"
-dependencies = [
- "borsh",
- "near-sdk",
- "rand",
- "serde",
- "serde_json",
- "wee_alloc",
-]
-
-[[package]]
 name = "num-bigint"
 version = "0.2.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -336,6 +324,18 @@ name = "opaque-debug"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "2839e79665f131bdb5782e51f2c6c9599c133c6098982a54c794358bf432529c"
+
+[[package]]
+name = "plantary-nft"
+version = "0.1.0"
+dependencies = [
+ "borsh",
+ "near-sdk",
+ "rand",
+ "serde",
+ "serde_json",
+ "wee_alloc",
+]
 
 [[package]]
 name = "ppv-lite86"
