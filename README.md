@@ -157,4 +157,15 @@ https://explorer.testnet.near.org/transactions/AG5iRNasrPr1FSwxGnngVedkKABNBrKU7
 { id: 0, vtype: 1, vsubtype: 2, parent: 0 }
 ```
 
-That last bit of JSON is the data returned from the call.  Nothing much there yet ... more soon!
+That last bit of JSON is the data returned from the call. Nothing much there yet ... more soon!
+
+* Each new plant minted will have a unique id - they are non-fungible.
+
+* You can retrieve minted tokens by calling get_plant() with the token id. To get the first plant minted use:
+```
+near call --accountId YOURACCOUNTID TESTCONTRACTID get_plant '{"vid": 0}'
+```
+The contract also provides a delete_plant() function if you must.
+
+
+
