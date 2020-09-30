@@ -41,10 +41,10 @@ Minting a plant
 
 Each plant has different minting fees. For example:
 
-- random plant: 10
-- money plant: 15
-- oracle plant: 20
-- portrait plant: 25
+- random plant: 10 Ⓝ
+- money plant: 15 Ⓝ
+- oracle plant: 20 Ⓝ
+- portrait plant: 25 Ⓝ
 
 Plant DNA
 -
@@ -59,8 +59,8 @@ Plants can give harvests. The type of plant defines the kind of harvest. The por
 
 Harvest mints carry a fee depending on the type of harvest. Example:
 
-- each fortune harvest: 5
-- each portrait harvest: 10
+- each fortune harvest: 5 Ⓝ
+- each portrait harvest: 10 Ⓝ
 
 The DNA of the plants you own influence the types of harvest you can get (rarity and other qualities). You can select from the plants you have which ones you want to use to influence each harvest mint.
 
@@ -163,9 +163,20 @@ That last bit of JSON is the data returned from the call. Nothing much there yet
 
 * You can retrieve minted tokens by calling get_plant() with the token id. To get the first plant minted use:
 ```
-near call --accountId YOURACCOUNTID TESTCONTRACTID get_plant '{"vid": 0}'
+    near call --accountId YOURACCOUNTID TESTCONTRACTID get_plant '{"vid": 0}'
 ```
 The contract also provides a delete_plant() function if you must.
 
+--- 
+
+The UI has not yet been connected to the contract but can be previewed at: http://www.lenara.com/plantary/
 
 
+Plantary Team:
+-
+
+@lenara 
+@ivenka 
+@mari-gold 
+@myklemykle 
+@shad-k 
