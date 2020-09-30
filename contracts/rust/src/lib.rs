@@ -9,10 +9,12 @@
 
 
 use borsh::{BorshDeserialize, BorshSerialize};
+use serde::{Serialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
 use near_sdk::{env, near_bindgen, AccountId};
-use rand::Rng;
+//use rand::Rng;
+//use std::convert::TryInto;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -75,8 +77,7 @@ const HTYPE_GENERIC: HarvestType = 0;
 /// (not necessarily the right way to do this in rust, i'm still learning ...)
 ///
 
-
-#[derive(BorshDeserialize, BorshSerialize)]
+#[derive(Serialize, BorshDeserialize, BorshSerialize)]
 pub struct Veggie {
     pub id: TokenId,
     pub vtype: VeggieType,
@@ -85,7 +86,6 @@ pub struct Veggie {
 }
 
 impl Veggie {
-
     pub fn new(id: TokenId, vtype: VeggieType, vsubtype:VeggieSubType) -> Self {
         Self {
             id: id,
@@ -101,20 +101,29 @@ impl Veggie {
 // veggie traits
 //
 
+
 pub trait Veggies {
     fn create_veggie(&mut self, 
                     vtype: VeggieType,
                     vsubtype: VeggieSubType,
                     ) -> Veggie;
 
-
     fn get_veggie(&self, vid: TokenId) -> Veggie;
     fn delete_veggie(&mut self, vid: TokenId);
+
+    fn mint_plant(&mut self, 
+                    vsubtype: VeggieSubType,
+                    )->Veggie;
+
+    fn get_plant(&self, vid: TokenId) -> Veggie;
+
+    fn delete_plant(&mut self, vid: TokenId);
 }
 
 // veggie implementation
 //
 
+#[near_bindgen]
 impl Veggies for NonFungibleTokenBasic {
     fn create_veggie(&mut self, 
                     vtype: VeggieType,
@@ -149,29 +158,12 @@ impl Veggies for NonFungibleTokenBasic {
         // remove from ownership
         self.token_to_account.remove(&vid);
     }
-}
 
-/// end Veggie section
+    // same thing for plants
 
-/// the Plant section, which delegates everything to Veggie
-///
-pub trait Plants {
-
-    fn create_plant(&mut self, 
-                    vsubtype: VeggieSubType,
-                    )->Veggie;
-
-    fn get_plant(&self, vid: TokenId) -> Veggie;
-
-    fn delete_plant(&mut self, vid: TokenId);
-
-}
-
-impl Plants for NonFungibleTokenBasic {
-    fn create_plant(&mut self,
+    fn mint_plant(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
-        //return self.create_veggie(PLANT_TYPE.to_string(), vsubtype);
         return self.create_veggie(VTYPE_PLANT, vsubtype);
     }
 
@@ -263,11 +255,25 @@ impl NonFungibleTokenBasic {
         }
     }
 
-    fn gen_token_id(&self) -> TokenId {
-        let mut rng = rand::thread_rng();
-        let id: TokenId = rng.gen();
-        // TODO: test that it doesn't already exist.
+    pub fn gen_token_id(&self) -> TokenId {
+        // TODO: ask a pro if this is anything like the right way to get a random tokenID in NEAR!
+        // Near provides this vector of random bytes, will it always be 32 bytes long? we only need 8 ...
+        let s = env::random_seed();
+        let mut id: TokenId = 0;
+        for val in s[0..7].iter() {
+            id = id << 8 + val;
+        }
+
+        // if ever that totally random ID is in already in use, just increment.
+        while self.token_to_account.get(&id).is_some(){
+            id += 1;
+        }
+
         return id; 
+    }
+
+    pub fn see_seed(&self) -> Vec<u8> {
+        return env::random_seed();
     }
 }
 
@@ -409,7 +415,7 @@ mod tests {
                 storage_usage,
                 attached_deposit: 0,
                 prepaid_gas: 10u64.pow(18),
-                random_seed: vec![0, 1, 2],
+                random_seed: vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 is_view: false,
                 output_data_receivers: vec![],
                 epoch_height: 19,
@@ -632,7 +638,7 @@ mod tests {
             let mut contract = NonFungibleTokenBasic::new(robert());
 
                 // create
-            let p = contract.create_plant(PTYPE_GENERIC);
+            let p = contract.mint_plant(PTYPE_GENERIC);
                 // inspect
             assert_eq!(p.vtype, VTYPE_PLANT, "vtype not saved");
             assert_eq!(p.vsubtype, PTYPE_GENERIC, "vsubtype not saved");
@@ -653,11 +659,20 @@ mod tests {
             let mut contract = NonFungibleTokenBasic::new(robert());
 
                 // create
-            let p = contract.create_plant(PTYPE_GENERIC);
+            let p = contract.mint_plant(PTYPE_GENERIC);
             let h = contract.harvest_plant(&p);
                 // inspect
             assert_eq!(p.id, h.parent, "parentage suspect");
         }
+
+        #[test]
+        fn test_gen_id(){
+            testing_env!(get_context(robert(), 0));
+            let contract = NonFungibleTokenBasic::new(robert());
+
+            let _randid = contract.gen_token_id();
+        }
+
 
         /*
         #[test]
