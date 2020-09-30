@@ -3360,7 +3360,7 @@ near-api-js@^0.30.0:
     text-encoding-utf-8 "^1.0.2"
     tweetnacl "^1.0.1"
 
-near-cli@^1.0.3:
+near-cli@^1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/near-cli/-/near-cli-1.2.0.tgz#1f4a26013876f6e318ff49c5865d1224ca531a1f"
   integrity sha512-1tVZFW4KnQIuYAVYzDjJoOYAVJhDUFAJKzJvXEOkMl3+lj5CQVJRRuAdEFh3SEZ2ZLbU2fIE5E49HPVPzaGfcw==
