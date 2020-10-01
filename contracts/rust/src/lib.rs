@@ -13,8 +13,6 @@ use serde::{Serialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
 use near_sdk::{env, near_bindgen, AccountId};
-//use rand::Rng;
-//use std::convert::TryInto;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
