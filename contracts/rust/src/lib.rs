@@ -44,7 +44,7 @@ pub trait NEP4 {
     fn transfer(&mut self, new_owner_id: AccountId, token_id: TokenId); 
 
     // Returns `true` or `false` based on caller of the function (`predecessor_id) having access to the token
-    fn check_access(&self, account_id: AccountId) -> bool;
+    fn check_access(&self, account_id: &AccountId) -> bool;
 
     // Get an individual owner by given `tokenId`.
     fn get_token_owner(&self, token_id: TokenId) -> String;
@@ -53,6 +53,7 @@ pub trait NEP4 {
 
 /// The token ID type is also defined in the NEP
 pub type TokenId = u64;
+pub type TokenSet = UnorderedSet<TokenId>;
 pub type AccountIdHash = Vec<u8>;
 pub type VeggieType = i8;
 pub type VeggieSubType = i8;
@@ -228,10 +229,15 @@ impl Harvests for NonFungibleTokenBasic {
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
 pub struct NonFungibleTokenBasic {
+    // ownership structure:
     pub token_to_account: UnorderedMap<TokenId, AccountId>,
+    pub account_to_tokens: UnorderedMap<AccountId, TokenSet>,
     pub account_gives_access: UnorderedMap<AccountIdHash, UnorderedSet<AccountIdHash>>, // Vec<u8> is sha256 of account, makes it safer and is how fungible token also works
+
+    // owner of the entire bank!
     pub owner_id: AccountId,
 
+    // metadata storage
     pub veggies: UnorderedMap<TokenId, Veggie>,
 }
 
@@ -249,6 +255,7 @@ impl NonFungibleTokenBasic {
         assert!(!env::state_exists(), "Already initialized");
         Self {
             token_to_account: UnorderedMap::new(b"token-belongs-to".to_vec()),
+            account_to_tokens: UnorderedMap::new(b"account-owns".to_vec()),
             account_gives_access: UnorderedMap::new(b"gives-access".to_vec()),
             owner_id,
             veggies: UnorderedMap::new(b"veggies".to_vec()),
@@ -261,7 +268,7 @@ impl NonFungibleTokenBasic {
         let s = env::random_seed();
         let mut id: TokenId = 0;
         for val in s[0..7].iter() {
-            id = id << 8 + val;
+            id = (id << 8) + (*val as u64);
         }
 
         // if ever that totally random ID is in already in use, just increment.
@@ -272,9 +279,6 @@ impl NonFungibleTokenBasic {
         return id; 
     }
 
-    pub fn see_seed(&self) -> Vec<u8> {
-        return env::random_seed();
-    }
 }
 
 #[near_bindgen]
@@ -319,25 +323,46 @@ impl NEP4 for NonFungibleTokenBasic {
         if predecessor != token_owner_account_id {
             env::panic(b"Attempt to call transfer on tokens belonging to another account.")
         }
+
+        let mut new_owner_tokens = self._get_owner_tokens(&new_owner_id);
+        let mut prev_owner_tokens = self._get_owner_tokens(&token_owner_account_id);
+
+        new_owner_tokens.insert(&token_id);
+
+        // Q: if owner_tokens is now empty, would it be more NEAR-optimal to delete it from the map?
+        prev_owner_tokens.remove(&token_id); 
+
+        // Q: In NEAR, is a transaction guaranteed around a smart method call?
+        // Cuz these three need to be a transaction:
         self.token_to_account.insert(&token_id, &new_owner_id);
+        self.account_to_tokens.insert(&new_owner_id, &new_owner_tokens);
+        self.account_to_tokens.insert(&token_owner_account_id, &prev_owner_tokens);
     }
 
     fn transfer_from(&mut self, owner_id: AccountId, new_owner_id: AccountId, token_id: TokenId) {
         let token_owner_account_id = self.get_token_owner(token_id);
         if owner_id != token_owner_account_id {
-            env::panic(b"Attempt to transfer a token from a different owner.")
+            env::panic(b"Attempt to transfer a token from wrong owner.")
         }
 
-        if !self.check_access(token_owner_account_id) {
+        if !self.check_access(&token_owner_account_id) {
             env::panic(b"Attempt to transfer a token with no access.")
         }
+
+        let mut new_owner_tokens = self._get_owner_tokens(&new_owner_id);
+        let mut prev_owner_tokens = self._get_owner_tokens(&token_owner_account_id);
+
+        new_owner_tokens.insert(&token_id);
+        prev_owner_tokens.remove(&token_id); 
         self.token_to_account.insert(&token_id, &new_owner_id);
+        self.account_to_tokens.insert(&new_owner_id, &new_owner_tokens);
+        self.account_to_tokens.insert(&token_owner_account_id, &prev_owner_tokens);
     }
 
-    fn check_access(&self, account_id: AccountId) -> bool {
+    fn check_access(&self, account_id: &AccountId) -> bool {
         let account_hash = env::sha256(account_id.as_bytes());
         let predecessor = env::predecessor_account_id();
-        if predecessor == account_id {
+        if predecessor == *account_id {
             return true;
         }
         match self.account_gives_access.get(&account_hash) {
@@ -356,11 +381,28 @@ impl NEP4 for NonFungibleTokenBasic {
             None => env::panic(b"No owner of the token ID specified")
         }
     }
+    
 }
 
 /// Methods not in the strict scope of the NFT spec (NEP4)
 #[near_bindgen]
 impl NonFungibleTokenBasic {
+    // Gets list of tokens by owner
+    fn _get_owner_tokens(&self, account_id: &AccountId) -> TokenSet {
+        match self.account_to_tokens.get(&account_id) {
+            Some(owner_tokens) => owner_tokens,
+            None => UnorderedSet::new(b"owner-tokens-set".to_vec())
+        }
+    }
+    
+    // This seems silly.  The above method & this method should be one method.
+    // But borsh doesn't seem to be able to serialize
+    // an UnorderedSet of IDs, even tho it can do a Vector of IDs and 
+    // converting one to the other is easy as to_vec().
+    pub fn get_owner_tokens(&self, account_id: &AccountId) -> Vec<TokenId> {
+        self._get_owner_tokens(&account_id).to_vec()
+    }
+
     /// Creates a token for owner_id, doesn't use autoincrement, fails if id is taken
     pub fn mint_token(&mut self, owner_id: String, token_id: TokenId) {
         // make sure that only the owner can call this funtion
@@ -370,8 +412,27 @@ impl NonFungibleTokenBasic {
         if token_check.is_some() {
             env::panic(b"Token ID already exists.")
         }
-        // No token with that ID exists, mint and add token to data structures
+
+        // No token with that ID exists. mint and add token to data structures
+        let mut new_owner_tokens = self._get_owner_tokens(&owner_id);
+        new_owner_tokens.insert(&token_id);
+        self.account_to_tokens.insert(&owner_id, &new_owner_tokens);
         self.token_to_account.insert(&token_id, &owner_id);
+
+
+    }
+
+    pub fn burn_token(&mut self, token_id: TokenId) {
+        let owner_id = self.get_token_owner(token_id);
+        let predecessor = env::predecessor_account_id();
+        if predecessor != owner_id {
+            env::panic(b"not yours to burn")
+        }
+
+        let mut owner_tokens = self._get_owner_tokens(&owner_id);
+        owner_tokens.remove(&token_id);
+        self.account_to_tokens.insert(&owner_id, &owner_tokens);
+        self.token_to_account.remove(&token_id);
     }
 
     /// helper function determining contract ownership
@@ -460,7 +521,7 @@ mod tests {
             // does Robert have access to Joe's account? Yes.
             context = get_context(robert(), env::storage_usage());
             testing_env!(context);
-            let mut robert_has_access = contract.check_access(joe());
+            let mut robert_has_access = contract.check_access(&joe());
             assert_eq!(true, robert_has_access, "After granting access, check_access call failed.");
 
             // Joe revokes access from Robert
@@ -471,7 +532,7 @@ mod tests {
             // does Robert have access to Joe's account? No
             context = get_context(robert(), env::storage_usage());
             testing_env!(context);
-            robert_has_access = contract.check_access(joe());
+            robert_has_access = contract.check_access(&joe());
             assert_eq!(false, robert_has_access, "After revoking access, check_access call failed.");
         }
 
@@ -525,7 +586,7 @@ mod tests {
 
         #[test]
         #[should_panic(
-            expected = r#"Attempt to transfer a token from a different owner."#
+            expected = r#"Attempt to transfer a token from wrong owner."#
         )]
         fn transfer_from_with_escrow_access_wrong_owner_id() {
             // Escrow account: robert.testnet
@@ -673,10 +734,68 @@ mod tests {
             let _randid = contract.gen_token_id();
         }
 
-
-        /*
         #[test]
-        fn transfer_veggies(){
+        fn mint_burn_token(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = NonFungibleTokenBasic::new(robert());
+            let token_id = 19u64;
+
+            // mint
+            contract.mint_token(robert(), token_id);
+            
+            // burn
+            contract.burn_token(token_id);
         }
-        */
+
+        #[test]
+        #[should_panic(
+            expected = r#"not yours to burn"#
+        )]
+        fn cant_burn_mine(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = NonFungibleTokenBasic::new(robert());
+            let token_id = 19u64;
+            // mint
+            contract.mint_token(mike(), token_id);
+            
+            // burn (as robert)
+            contract.burn_token(token_id);
+        }
+
+        #[test]
+        fn get_owner_tokens(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut token_id = 19u64;
+
+            // mint 3
+            contract.mint_token(robert(), token_id);
+            token_id += 1;
+            contract.mint_token(robert(), token_id);
+            token_id += 1;
+            contract.mint_token(robert(), token_id);
+
+            // get them all
+            let mut tokens = contract.get_owner_tokens(&robert());
+
+            // should be 3
+            //
+            assert_eq!(tokens.len(), 3, "didn't get all 3 tokens");
+            // burn 1
+            token_id = 19u64;
+            contract.burn_token(token_id);
+            // get them all 
+            tokens = contract.get_owner_tokens(&robert());
+            // should be 2
+            assert_eq!(tokens.len(), 2, "didn't get both tokens");
+            // burn both
+            token_id += 1;
+            contract.burn_token(token_id);
+            token_id += 1;
+            contract.burn_token(token_id);
+            // get them all
+            tokens = contract.get_owner_tokens(&robert());
+            // should be empty
+            assert_eq!(tokens.len(), 0, "why did i get tokens?");
+        }
 }
