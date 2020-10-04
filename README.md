@@ -1,6 +1,8 @@
 # plantary
 Grow plants and harvest NFTs
 
+**Demo video:** http://www.lenara.com/plantary/Plantary-demo-video.mp4 
+
 How to Grow and Harvest NFTs
 -
 
