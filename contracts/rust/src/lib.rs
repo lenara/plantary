@@ -7,7 +7,6 @@
 /// Implements blockchain ledger for plants and their fruit
 ///
 
-
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Serialize};
 use near_sdk::collections::UnorderedMap;
@@ -48,26 +47,12 @@ pub trait NEP4 {
     fn get_token_owner(&self, token_id: TokenId) -> String;
 }
 
-
 /// The token ID type is also defined in the NEP
 pub type TokenId = u64;
 pub type AccountIdHash = Vec<u8>;
-pub type VeggieType = i8;
-pub type VeggieSubType = i8;
-pub type PlantType = VeggieSubType;
-pub type HarvestType = VeggieSubType;
 
-// TODO: these should be defined once for both server and client sides --
-// what is a resource type for that?
-const VTYPE_PLANT: VeggieType = 1;
-const VTYPE_HARVEST: VeggieType = 2;
-
-//const PTYPE_GENERIC: PlantType = 0;
-//const PTYPE_ORACLE: PlantType = 1;
-//const PTYPE_PORTRAIT: PlantType = 2;
-//const PTYPE_MONEY: PlantType = 3;
-
-const HTYPE_GENERIC: HarvestType = 0;
+mod constants;
+use constants::{VeggieType, VeggieSubType, vtypes, htypes};
 
 ///
 /// the veggie section
@@ -162,7 +147,7 @@ impl Veggies for NonFungibleTokenBasic {
     fn mint_plant(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
-        return self.create_veggie(VTYPE_PLANT, vsubtype);
+        return self.create_veggie(vtypes::PLANT, vsubtype);
     }
 
     fn get_plant(&self, vid: TokenId) -> Veggie {
@@ -195,7 +180,7 @@ impl Harvests for NonFungibleTokenBasic {
     fn create_harvest(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
-        return self.create_veggie(VTYPE_HARVEST, vsubtype);
+        return self.create_veggie(vtypes::HARVEST, vsubtype);
     }
 
     fn get_harvest(self, vid: TokenId) -> Veggie {
@@ -210,11 +195,11 @@ impl Harvests for NonFungibleTokenBasic {
     // (harvest in this case is a verb.)
     fn harvest_plant(&mut self, parent: &Veggie) -> Veggie {
         // Assert: parent is a plant
-        if parent.vtype != VTYPE_PLANT {
+        if parent.vtype != vtypes::PLANT {
             env::panic(b"non-plant harvest");
         }
         // TODO: for every plant type there is a set of allowed harvest types, or none allowed)
-        let mut h = self.create_harvest(HTYPE_GENERIC);
+        let mut h = self.create_harvest(htypes::GENERIC);
         h.parent = parent.id;
         return h;
     }
@@ -384,8 +369,8 @@ mod tests {
     use super::*;
     use near_sdk::MockedBlockchain;
     use near_sdk::{testing_env, VMContext};
+    use constants::{vtypes, ptypes};
 
-    const PTYPE_GENERIC: PlantType = 0;
 
     fn joe() -> AccountId {
         "joe.testnet".to_string()
@@ -610,9 +595,9 @@ mod tests {
             let mut contract = NonFungibleTokenBasic::new(robert());
 
                 // create
-            let v = contract.create_veggie(VTYPE_PLANT, PTYPE_GENERIC);
+            let v = contract.create_veggie(vtypes::PLANT, ptypes::GENERIC);
                 // inspect?
-            assert_eq!(v.vsubtype, PTYPE_GENERIC, "subtype not found.");
+            assert_eq!(v.vsubtype, ptypes::GENERIC, "subtype not found.");
                 // find?
             let vid = v.id;
                 // confirm
@@ -636,10 +621,10 @@ mod tests {
             let mut contract = NonFungibleTokenBasic::new(robert());
 
                 // create
-            let p = contract.mint_plant(PTYPE_GENERIC);
+            let p = contract.mint_plant(ptypes::GENERIC);
                 // inspect
-            assert_eq!(p.vtype, VTYPE_PLANT, "vtype not saved");
-            assert_eq!(p.vsubtype, PTYPE_GENERIC, "vsubtype not saved");
+            assert_eq!(p.vtype, vtypes::PLANT, "vtype not saved");
+            assert_eq!(p.vsubtype, ptypes::GENERIC, "vsubtype not saved");
                 // find
             let same_p = contract.get_plant(p.id);
             assert_eq!(p.id, same_p.id, "cant get plant");
@@ -657,7 +642,7 @@ mod tests {
             let mut contract = NonFungibleTokenBasic::new(robert());
 
                 // create
-            let p = contract.mint_plant(PTYPE_GENERIC);
+            let p = contract.mint_plant(ptypes::GENERIC);
             let h = contract.harvest_plant(&p);
                 // inspect
             assert_eq!(p.id, h.parent, "parentage suspect");
