@@ -118,7 +118,7 @@ impl Veggies for PlantaryContract {
         // record in the static list of veggies
         self.veggies.insert(&c.id, &c);
         // record ownership in the nft structure
-        self.mint_token(env::predecessor_account_id(), c.id);
+        self.token_bank.mint_token(env::predecessor_account_id(), c.id);
         return c;
     }
 
@@ -139,8 +139,8 @@ impl Veggies for PlantaryContract {
         // TODO: check perms?
         // delete from global list
         self.veggies.remove(&vid);
-        // remove from ownership
-        self.token_to_account.remove(&vid);
+        // remove from ownership (should use burn_token)
+        self.token_bank.token_to_account.remove(&vid);
     }
 
     // same thing for plants
@@ -148,6 +148,8 @@ impl Veggies for PlantaryContract {
     fn mint_plant(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
+        // make sure that only the owner can call this funtion (needed?)
+        self.only_owner();
         return self.create_veggie(vtypes::PLANT, vsubtype);
     }
 
@@ -209,15 +211,72 @@ impl Harvests for PlantaryContract {
 /// end Harvest section
 
 // Begin implementation
-#[near_bindgen]
+//#[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct PlantaryContract {
+pub struct TokenBank {
     // ownership structure:
     pub token_to_account: UnorderedMap<TokenId, AccountId>,
     pub account_to_tokens: UnorderedMap<AccountId, TokenSet>,
     pub account_gives_access: UnorderedMap<AccountIdHash, UnorderedSet<AccountIdHash>>, // Vec<u8> is sha256 of account, makes it safer and is how fungible token also works
+}
 
-    // owner of the entire bank!
+impl TokenBank {
+    pub fn new() -> Self {
+        Self {
+            token_to_account: UnorderedMap::new(b"token-belongs-to".to_vec()),
+            account_to_tokens: UnorderedMap::new(b"account-owns".to_vec()),
+            account_gives_access: UnorderedMap::new(b"gives-access".to_vec()),
+        }
+    }
+
+    // Non-NEP handy token functions:
+    //
+    // Gets list of tokens by owner
+    fn get_owner_tokens(&self, account_id: &AccountId) -> TokenSet {
+        match self.account_to_tokens.get(&account_id) {
+            Some(owner_tokens) => owner_tokens,
+            None => UnorderedSet::new(b"owner-tokens-set".to_vec())
+        }
+    }
+    
+    /// Creates a token for owner_id, doesn't use autoincrement, fails if id is taken
+    pub fn mint_token(&mut self, owner_id: String, token_id: TokenId) {
+        // Since Map doesn't have `contains` we use match
+        let token_check = self.token_to_account.get(&token_id);
+        if token_check.is_some() {
+            env::panic(b"Token ID already exists.")
+        }
+
+        // No token with that ID exists. mint and add token to data structures
+        let mut new_owner_tokens = self.get_owner_tokens(&owner_id);
+        new_owner_tokens.insert(&token_id);
+        self.account_to_tokens.insert(&owner_id, &new_owner_tokens);
+        self.token_to_account.insert(&token_id, &owner_id);
+
+
+    }
+
+    // burns a token
+    pub fn burn_token(&mut self, token_id: TokenId) {
+        let owner_id = self.get_token_owner(token_id);
+        let predecessor = env::predecessor_account_id();
+        if predecessor != owner_id {
+            env::panic(b"not yours to burn")
+        }
+
+        let mut owner_tokens = self.get_owner_tokens(&owner_id);
+        owner_tokens.remove(&token_id);
+        self.account_to_tokens.insert(&owner_id, &owner_tokens);
+        self.token_to_account.remove(&token_id);
+    }
+
+}
+
+#[near_bindgen]
+#[derive(BorshDeserialize, BorshSerialize)]
+pub struct PlantaryContract {
+    pub token_bank: TokenBank,
+    // owner of the contract:
     pub owner_id: AccountId,
 
     // metadata storage
@@ -229,6 +288,11 @@ impl Default for PlantaryContract {
         panic!("plantary should be initialized before usage")
     }
 }
+impl Default for TokenBank {
+    fn default() -> Self {
+        panic!("tokenbank should be initialized before usage")
+    }
+}
 
 #[near_bindgen]
 impl PlantaryContract {
@@ -237,15 +301,16 @@ impl PlantaryContract {
         assert!(env::is_valid_account_id(owner_id.as_bytes()), "Owner's account ID is invalid.");
         assert!(!env::state_exists(), "Already initialized");
         Self {
-            token_to_account: UnorderedMap::new(b"token-belongs-to".to_vec()),
-            account_to_tokens: UnorderedMap::new(b"account-owns".to_vec()),
-            account_gives_access: UnorderedMap::new(b"gives-access".to_vec()),
+      //      token_to_account: UnorderedMap::new(b"token-belongs-to".to_vec()),
+     //       account_to_tokens: UnorderedMap::new(b"account-owns".to_vec()),
+      //      account_gives_access: UnorderedMap::new(b"gives-access".to_vec()),
+            token_bank: TokenBank::new(),
             owner_id,
             veggies: UnorderedMap::new(b"veggies".to_vec()),
         }
     }
 
-    pub fn gen_token_id(&self) -> TokenId {
+   pub fn gen_token_id(&self) -> TokenId {
         // TODO: ask a pro if this is anything like the right way to get a random tokenID in NEAR!
         // Near provides this vector of random bytes, will it always be 32 bytes long? we only need 8 ...
         let s = env::random_seed();
@@ -255,17 +320,27 @@ impl PlantaryContract {
         }
 
         // if ever that totally random ID is in already in use, just increment.
-        while self.token_to_account.get(&id).is_some(){
+        while self.token_bank.token_to_account.get(&id).is_some(){
             id += 1;
         }
 
         return id; 
     }
 
+    pub fn get_owner_tokens(&self, account_id: &AccountId) -> Vec<TokenId> {
+        self.token_bank.get_owner_tokens(&account_id).to_vec()
+    }
+
+    /// helper function determining contract ownership
+    /// Really these token functions all need some clearer security framework.
+    fn only_owner(&mut self) {
+        assert_eq!(env::predecessor_account_id(), self.owner_id, "Only contract owner can call this method.");
+    }
 }
 
 #[near_bindgen]
-impl NEP4 for PlantaryContract {
+//impl NEP4 for PlantaryContract {
+impl NEP4 for TokenBank {
     fn grant_access(&mut self, escrow_account_id: AccountId) {
         let escrow_hash = env::sha256(escrow_account_id.as_bytes());
         let predecessor = env::predecessor_account_id();
@@ -307,8 +382,8 @@ impl NEP4 for PlantaryContract {
             env::panic(b"Attempt to call transfer on tokens belonging to another account.")
         }
 
-        let mut new_owner_tokens = self._get_owner_tokens(&new_owner_id);
-        let mut prev_owner_tokens = self._get_owner_tokens(&token_owner_account_id);
+        let mut new_owner_tokens = self.get_owner_tokens(&new_owner_id);
+        let mut prev_owner_tokens = self.get_owner_tokens(&token_owner_account_id);
 
         new_owner_tokens.insert(&token_id);
 
@@ -332,8 +407,8 @@ impl NEP4 for PlantaryContract {
             env::panic(b"Attempt to transfer a token with no access.")
         }
 
-        let mut new_owner_tokens = self._get_owner_tokens(&new_owner_id);
-        let mut prev_owner_tokens = self._get_owner_tokens(&token_owner_account_id);
+        let mut new_owner_tokens = self.get_owner_tokens(&new_owner_id);
+        let mut prev_owner_tokens = self.get_owner_tokens(&token_owner_account_id);
 
         new_owner_tokens.insert(&token_id);
         prev_owner_tokens.remove(&token_id); 
@@ -370,58 +445,7 @@ impl NEP4 for PlantaryContract {
 /// Methods not in the strict scope of the NFT spec (NEP4)
 #[near_bindgen]
 impl PlantaryContract {
-    // Gets list of tokens by owner
-    fn _get_owner_tokens(&self, account_id: &AccountId) -> TokenSet {
-        match self.account_to_tokens.get(&account_id) {
-            Some(owner_tokens) => owner_tokens,
-            None => UnorderedSet::new(b"owner-tokens-set".to_vec())
-        }
-    }
-    
-    // This seems silly.  The above method & this method should be one method.
-    // But borsh doesn't seem to be able to serialize
-    // an UnorderedSet of IDs, even tho it can do a Vector of IDs and 
-    // converting one to the other is easy as to_vec().
-    pub fn get_owner_tokens(&self, account_id: &AccountId) -> Vec<TokenId> {
-        self._get_owner_tokens(&account_id).to_vec()
-    }
 
-    /// Creates a token for owner_id, doesn't use autoincrement, fails if id is taken
-    pub fn mint_token(&mut self, owner_id: String, token_id: TokenId) {
-        // make sure that only the owner can call this funtion
-        self.only_owner();
-        // Since Map doesn't have `contains` we use match
-        let token_check = self.token_to_account.get(&token_id);
-        if token_check.is_some() {
-            env::panic(b"Token ID already exists.")
-        }
-
-        // No token with that ID exists. mint and add token to data structures
-        let mut new_owner_tokens = self._get_owner_tokens(&owner_id);
-        new_owner_tokens.insert(&token_id);
-        self.account_to_tokens.insert(&owner_id, &new_owner_tokens);
-        self.token_to_account.insert(&token_id, &owner_id);
-
-
-    }
-
-    pub fn burn_token(&mut self, token_id: TokenId) {
-        let owner_id = self.get_token_owner(token_id);
-        let predecessor = env::predecessor_account_id();
-        if predecessor != owner_id {
-            env::panic(b"not yours to burn")
-        }
-
-        let mut owner_tokens = self._get_owner_tokens(&owner_id);
-        owner_tokens.remove(&token_id);
-        self.account_to_tokens.insert(&owner_id, &owner_tokens);
-        self.token_to_account.remove(&token_id);
-    }
-
-    /// helper function determining contract ownership
-    fn only_owner(&mut self) {
-        assert_eq!(env::predecessor_account_id(), self.owner_id, "Only contract owner can call this method.");
-    }
 }
 
 // use the attribute below for unit tests
@@ -470,15 +494,16 @@ mod tests {
         fn grant_access() {
             let context = get_context(robert(), 0);
             testing_env!(context);
-            let mut contract = PlantaryContract::new(robert());
-            let length_before = contract.account_gives_access.len();
+            let contract = PlantaryContract::new(robert());
+            let mut tb = contract.token_bank;
+            let length_before = tb.account_gives_access.len();
             assert_eq!(0, length_before, "Expected empty account access Map.");
-            contract.grant_access(mike());
-            contract.grant_access(joe());
-            let length_after = contract.account_gives_access.len();
+            tb.grant_access(mike());
+            tb.grant_access(joe());
+            let length_after = tb.account_gives_access.len();
             assert_eq!(1, length_after, "Expected an entry in the account's access Map.");
             let predecessor_hash = env::sha256(robert().as_bytes());
-            let num_grantees = contract.account_gives_access.get(&predecessor_hash).unwrap();
+            let num_grantees = tb.account_gives_access.get(&predecessor_hash).unwrap();
             assert_eq!(2, num_grantees.len(), "Expected two accounts to have access to predecessor.");
         }
 
@@ -490,7 +515,7 @@ mod tests {
             let context = get_context(robert(), 0);
             testing_env!(context);
             let mut contract = PlantaryContract::new(robert());
-            contract.revoke_access(joe());
+            contract.token_bank.revoke_access(joe());
         }
 
         #[test]
@@ -498,24 +523,25 @@ mod tests {
             // Joe grants access to Robert
             let mut context = get_context(joe(), 0);
             testing_env!(context);
-            let mut contract = PlantaryContract::new(joe());
-            contract.grant_access(robert());
+            let contract = PlantaryContract::new(joe());
+            let mut tb = contract.token_bank;
+            tb.grant_access(robert());
 
             // does Robert have access to Joe's account? Yes.
             context = get_context(robert(), env::storage_usage());
             testing_env!(context);
-            let mut robert_has_access = contract.check_access(&joe());
+            let mut robert_has_access = tb.check_access(&joe());
             assert_eq!(true, robert_has_access, "After granting access, check_access call failed.");
 
             // Joe revokes access from Robert
             context = get_context(joe(), env::storage_usage());
             testing_env!(context);
-            contract.revoke_access(robert());
+            tb.revoke_access(robert());
 
             // does Robert have access to Joe's account? No
             context = get_context(robert(), env::storage_usage());
             testing_env!(context);
-            robert_has_access = contract.check_access(&joe());
+            robert_has_access = tb.check_access(&joe());
             assert_eq!(false, robert_has_access, "After revoking access, check_access call failed.");
         }
 
@@ -523,9 +549,10 @@ mod tests {
         fn mint_token_get_token_owner() {
             let context = get_context(robert(), 0);
             testing_env!(context);
-            let mut contract = PlantaryContract::new(robert());
-            contract.mint_token(mike(), 19u64);
-            let owner = contract.get_token_owner(19u64);
+            let contract = PlantaryContract::new(robert());
+            let mut tb = contract.token_bank;
+            tb.mint_token(mike(), 19u64);
+            let owner = tb.get_token_owner(19u64);
             assert_eq!(mike(), owner, "Unexpected token owner.");
         }
 
@@ -538,10 +565,11 @@ mod tests {
             // Robert is trying to transfer it to Robert's account without having access.
             let context = get_context(robert(), 0);
             testing_env!(context);
-            let mut contract = PlantaryContract::new(robert());
+            let contract = PlantaryContract::new(robert());
+            let mut tb = contract.token_bank;
             let token_id = 19u64;
-            contract.mint_token(mike(), token_id);
-            contract.transfer_from(mike(), robert(), token_id.clone());
+            tb.mint_token(mike(), token_id);
+            tb.transfer_from(mike(), robert(), token_id.clone());
         }
 
         #[test]
@@ -551,19 +579,20 @@ mod tests {
             // New owner account: joe.testnet
             let mut context = get_context(mike(), 0);
             testing_env!(context);
-            let mut contract = PlantaryContract::new(mike());
+            let contract = PlantaryContract::new(mike());
+            let mut tb = contract.token_bank;
             let token_id = 19u64;
-            contract.mint_token(mike(), token_id);
+            tb.mint_token(mike(), token_id);
             // Mike grants access to Robert
-            contract.grant_access(robert());
+            tb.grant_access(robert());
 
             // Robert transfers the token to Joe
             context = get_context(robert(), env::storage_usage());
             testing_env!(context);
-            contract.transfer_from(mike(), joe(), token_id.clone());
+            tb.transfer_from(mike(), joe(), token_id.clone());
 
             // Check new owner
-            let owner = contract.get_token_owner(token_id.clone());
+            let owner = tb.get_token_owner(token_id.clone());
             assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
         }
 
@@ -577,16 +606,17 @@ mod tests {
             // New owner account: joe.testnet
             let mut context = get_context(mike(), 0);
             testing_env!(context);
-            let mut contract = PlantaryContract::new(mike());
+            let contract = PlantaryContract::new(mike());
+            let mut tb = contract.token_bank;
             let token_id = 19u64;
-            contract.mint_token(mike(), token_id);
+            tb.mint_token(mike(), token_id);
             // Mike grants access to Robert
-            contract.grant_access(robert());
+            tb.grant_access(robert());
 
             // Robert transfers the token to Joe
             context = get_context(robert(), env::storage_usage());
             testing_env!(context);
-            contract.transfer_from(robert(), joe(), token_id.clone());
+            tb.transfer_from(robert(), joe(), token_id.clone());
         }
 
         #[test]
@@ -595,15 +625,16 @@ mod tests {
             // New owner account: joe.testnet
 
             testing_env!(get_context(robert(), 0));
-            let mut contract = PlantaryContract::new(robert());
+            let contract = PlantaryContract::new(robert());
+            let mut tb = contract.token_bank;
             let token_id = 19u64;
-            contract.mint_token(robert(), token_id);
+            tb.mint_token(robert(), token_id);
 
             // Robert transfers the token to Joe
-            contract.transfer_from(robert(), joe(), token_id.clone());
+            tb.transfer_from(robert(), joe(), token_id.clone());
 
             // Check new owner
-            let owner = contract.get_token_owner(token_id.clone());
+            let owner = tb.get_token_owner(token_id.clone());
             assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
         }
 
@@ -617,16 +648,17 @@ mod tests {
             // New owner account: joe.testnet
             let mut context = get_context(mike(), 0);
             testing_env!(context);
-            let mut contract = PlantaryContract::new(mike());
+            let contract = PlantaryContract::new(mike());
+            let mut tb = contract.token_bank;
             let token_id = 19u64;
-            contract.mint_token(mike(), token_id);
+            tb.mint_token(mike(), token_id);
             // Mike grants access to Robert
-            contract.grant_access(robert());
+            tb.grant_access(robert());
 
             // Robert transfers the token to Joe
             context = get_context(robert(), env::storage_usage());
             testing_env!(context);
-            contract.transfer(joe(), token_id.clone());
+            tb.transfer(joe(), token_id.clone());
         }
 
         #[test]
@@ -635,15 +667,16 @@ mod tests {
             // New owner account: joe.testnet
 
             testing_env!(get_context(robert(), 0));
-            let mut contract = PlantaryContract::new(robert());
+            let contract = PlantaryContract::new(robert());
+            let mut tb = contract.token_bank;
             let token_id = 19u64;
-            contract.mint_token(robert(), token_id);
+            tb.mint_token(robert(), token_id);
 
             // Robert transfers the token to Joe
-            contract.transfer(joe(), token_id.clone());
+            tb.transfer(joe(), token_id.clone());
 
             // Check new owner
-            let owner = contract.get_token_owner(token_id.clone());
+            let owner = tb.get_token_owner(token_id.clone());
             assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
         }
 
@@ -720,14 +753,15 @@ mod tests {
         #[test]
         fn mint_burn_token(){
             testing_env!(get_context(robert(), 0));
-            let mut contract = PlantaryContract::new(robert());
+            let contract = PlantaryContract::new(robert());
+            let mut tb = contract.token_bank;
             let token_id = 19u64;
 
             // mint
-            contract.mint_token(robert(), token_id);
+            tb.mint_token(robert(), token_id);
             
             // burn
-            contract.burn_token(token_id);
+            tb.burn_token(token_id);
         }
 
         #[test]
@@ -736,48 +770,50 @@ mod tests {
         )]
         fn cant_burn_mine(){
             testing_env!(get_context(robert(), 0));
-            let mut contract = PlantaryContract::new(robert());
+            let contract = PlantaryContract::new(robert());
+            let mut tb = contract.token_bank;
             let token_id = 19u64;
             // mint
-            contract.mint_token(mike(), token_id);
+            tb.mint_token(mike(), token_id);
             
             // burn (as robert)
-            contract.burn_token(token_id);
+            tb.burn_token(token_id);
         }
 
         #[test]
         fn get_owner_tokens(){
             testing_env!(get_context(robert(), 0));
-            let mut contract = PlantaryContract::new(robert());
+            let contract = PlantaryContract::new(robert());
+            let mut tb = contract.token_bank;
             let mut token_id = 19u64;
 
             // mint 3
-            contract.mint_token(robert(), token_id);
+            tb.mint_token(robert(), token_id);
             token_id += 1;
-            contract.mint_token(robert(), token_id);
+            tb.mint_token(robert(), token_id);
             token_id += 1;
-            contract.mint_token(robert(), token_id);
+            tb.mint_token(robert(), token_id);
 
             // get them all
-            let mut tokens = contract.get_owner_tokens(&robert());
+            let mut tokens = tb.get_owner_tokens(&robert());
 
             // should be 3
             //
             assert_eq!(tokens.len(), 3, "didn't get all 3 tokens");
             // burn 1
             token_id = 19u64;
-            contract.burn_token(token_id);
+            tb.burn_token(token_id);
             // get them all 
-            tokens = contract.get_owner_tokens(&robert());
+            tokens = tb.get_owner_tokens(&robert());
             // should be 2
             assert_eq!(tokens.len(), 2, "didn't get both tokens");
             // burn both
             token_id += 1;
-            contract.burn_token(token_id);
+            tb.burn_token(token_id);
             token_id += 1;
-            contract.burn_token(token_id);
+            tb.burn_token(token_id);
             // get them all
-            tokens = contract.get_owner_tokens(&robert());
+            tokens = tb.get_owner_tokens(&robert());
             // should be empty
             assert_eq!(tokens.len(), 0, "why did i get tokens?");
         }
