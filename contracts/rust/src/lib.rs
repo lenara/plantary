@@ -7,14 +7,11 @@
 /// Implements blockchain ledger for plants and their fruit
 ///
 
-
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Serialize};
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
 use near_sdk::{env, near_bindgen, AccountId};
-//use rand::Rng;
-//use std::convert::TryInto;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -50,27 +47,13 @@ pub trait NEP4 {
     fn get_token_owner(&self, token_id: TokenId) -> String;
 }
 
-
 /// The token ID type is also defined in the NEP
 pub type TokenId = u64;
 pub type TokenSet = UnorderedSet<TokenId>;
 pub type AccountIdHash = Vec<u8>;
-pub type VeggieType = i8;
-pub type VeggieSubType = i8;
-pub type PlantType = VeggieSubType;
-pub type HarvestType = VeggieSubType;
 
-// TODO: these should be defined once for both server and client sides --
-// what is a resource type for that?
-const VTYPE_PLANT: VeggieType = 1;
-const VTYPE_HARVEST: VeggieType = 2;
-
-//const PTYPE_GENERIC: PlantType = 0;
-//const PTYPE_ORACLE: PlantType = 1;
-//const PTYPE_PORTRAIT: PlantType = 2;
-//const PTYPE_MONEY: PlantType = 3;
-
-const HTYPE_GENERIC: HarvestType = 0;
+mod constants;
+use constants::{VeggieType, VeggieSubType, vtypes, htypes};
 
 ///
 /// the veggie section
@@ -125,7 +108,7 @@ pub trait Veggies {
 //
 
 #[near_bindgen]
-impl Veggies for NonFungibleTokenBasic {
+impl Veggies for PlantaryContract {
     fn create_veggie(&mut self, 
                     vtype: VeggieType,
                     vsubtype: VeggieSubType,
@@ -165,7 +148,7 @@ impl Veggies for NonFungibleTokenBasic {
     fn mint_plant(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
-        return self.create_veggie(VTYPE_PLANT, vsubtype);
+        return self.create_veggie(vtypes::PLANT, vsubtype);
     }
 
     fn get_plant(&self, vid: TokenId) -> Veggie {
@@ -194,11 +177,11 @@ pub trait Harvests {
     fn harvest_plant(&mut self, parent: &Veggie) -> Veggie;
 }
 
-impl Harvests for NonFungibleTokenBasic {
+impl Harvests for PlantaryContract {
     fn create_harvest(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
-        return self.create_veggie(VTYPE_HARVEST, vsubtype);
+        return self.create_veggie(vtypes::HARVEST, vsubtype);
     }
 
     fn get_harvest(self, vid: TokenId) -> Veggie {
@@ -213,11 +196,11 @@ impl Harvests for NonFungibleTokenBasic {
     // (harvest in this case is a verb.)
     fn harvest_plant(&mut self, parent: &Veggie) -> Veggie {
         // Assert: parent is a plant
-        if parent.vtype != VTYPE_PLANT {
+        if parent.vtype != vtypes::PLANT {
             env::panic(b"non-plant harvest");
         }
         // TODO: for every plant type there is a set of allowed harvest types, or none allowed)
-        let mut h = self.create_harvest(HTYPE_GENERIC);
+        let mut h = self.create_harvest(htypes::GENERIC);
         h.parent = parent.id;
         return h;
     }
@@ -228,7 +211,7 @@ impl Harvests for NonFungibleTokenBasic {
 // Begin implementation
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
-pub struct NonFungibleTokenBasic {
+pub struct PlantaryContract {
     // ownership structure:
     pub token_to_account: UnorderedMap<TokenId, AccountId>,
     pub account_to_tokens: UnorderedMap<AccountId, TokenSet>,
@@ -241,14 +224,14 @@ pub struct NonFungibleTokenBasic {
     pub veggies: UnorderedMap<TokenId, Veggie>,
 }
 
-impl Default for NonFungibleTokenBasic {
+impl Default for PlantaryContract {
     fn default() -> Self {
-        panic!("NFT should be initialized before usage")
+        panic!("plantary should be initialized before usage")
     }
 }
 
 #[near_bindgen]
-impl NonFungibleTokenBasic {
+impl PlantaryContract {
     #[init]
     pub fn new(owner_id: AccountId) -> Self {
         assert!(env::is_valid_account_id(owner_id.as_bytes()), "Owner's account ID is invalid.");
@@ -282,7 +265,7 @@ impl NonFungibleTokenBasic {
 }
 
 #[near_bindgen]
-impl NEP4 for NonFungibleTokenBasic {
+impl NEP4 for PlantaryContract {
     fn grant_access(&mut self, escrow_account_id: AccountId) {
         let escrow_hash = env::sha256(escrow_account_id.as_bytes());
         let predecessor = env::predecessor_account_id();
@@ -386,7 +369,7 @@ impl NEP4 for NonFungibleTokenBasic {
 
 /// Methods not in the strict scope of the NFT spec (NEP4)
 #[near_bindgen]
-impl NonFungibleTokenBasic {
+impl PlantaryContract {
     // Gets list of tokens by owner
     fn _get_owner_tokens(&self, account_id: &AccountId) -> TokenSet {
         match self.account_to_tokens.get(&account_id) {
@@ -447,8 +430,8 @@ mod tests {
     use super::*;
     use near_sdk::MockedBlockchain;
     use near_sdk::{testing_env, VMContext};
+    use constants::{vtypes, ptypes};
 
-    const PTYPE_GENERIC: PlantType = 0;
 
     fn joe() -> AccountId {
         "joe.testnet".to_string()
@@ -487,7 +470,7 @@ mod tests {
         fn grant_access() {
             let context = get_context(robert(), 0);
             testing_env!(context);
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             let length_before = contract.account_gives_access.len();
             assert_eq!(0, length_before, "Expected empty account access Map.");
             contract.grant_access(mike());
@@ -506,7 +489,7 @@ mod tests {
         fn revoke_access_and_panic() {
             let context = get_context(robert(), 0);
             testing_env!(context);
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             contract.revoke_access(joe());
         }
 
@@ -515,7 +498,7 @@ mod tests {
             // Joe grants access to Robert
             let mut context = get_context(joe(), 0);
             testing_env!(context);
-            let mut contract = NonFungibleTokenBasic::new(joe());
+            let mut contract = PlantaryContract::new(joe());
             contract.grant_access(robert());
 
             // does Robert have access to Joe's account? Yes.
@@ -540,7 +523,7 @@ mod tests {
         fn mint_token_get_token_owner() {
             let context = get_context(robert(), 0);
             testing_env!(context);
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             contract.mint_token(mike(), 19u64);
             let owner = contract.get_token_owner(19u64);
             assert_eq!(mike(), owner, "Unexpected token owner.");
@@ -555,7 +538,7 @@ mod tests {
             // Robert is trying to transfer it to Robert's account without having access.
             let context = get_context(robert(), 0);
             testing_env!(context);
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             let token_id = 19u64;
             contract.mint_token(mike(), token_id);
             contract.transfer_from(mike(), robert(), token_id.clone());
@@ -568,7 +551,7 @@ mod tests {
             // New owner account: joe.testnet
             let mut context = get_context(mike(), 0);
             testing_env!(context);
-            let mut contract = NonFungibleTokenBasic::new(mike());
+            let mut contract = PlantaryContract::new(mike());
             let token_id = 19u64;
             contract.mint_token(mike(), token_id);
             // Mike grants access to Robert
@@ -594,7 +577,7 @@ mod tests {
             // New owner account: joe.testnet
             let mut context = get_context(mike(), 0);
             testing_env!(context);
-            let mut contract = NonFungibleTokenBasic::new(mike());
+            let mut contract = PlantaryContract::new(mike());
             let token_id = 19u64;
             contract.mint_token(mike(), token_id);
             // Mike grants access to Robert
@@ -612,7 +595,7 @@ mod tests {
             // New owner account: joe.testnet
 
             testing_env!(get_context(robert(), 0));
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             let token_id = 19u64;
             contract.mint_token(robert(), token_id);
 
@@ -634,7 +617,7 @@ mod tests {
             // New owner account: joe.testnet
             let mut context = get_context(mike(), 0);
             testing_env!(context);
-            let mut contract = NonFungibleTokenBasic::new(mike());
+            let mut contract = PlantaryContract::new(mike());
             let token_id = 19u64;
             contract.mint_token(mike(), token_id);
             // Mike grants access to Robert
@@ -652,7 +635,7 @@ mod tests {
             // New owner account: joe.testnet
 
             testing_env!(get_context(robert(), 0));
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             let token_id = 19u64;
             contract.mint_token(robert(), token_id);
 
@@ -670,12 +653,12 @@ mod tests {
         )]
         fn create_delete_veggie() {
             testing_env!(get_context(robert(), 0));
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
 
                 // create
-            let v = contract.create_veggie(VTYPE_PLANT, PTYPE_GENERIC);
+            let v = contract.create_veggie(vtypes::PLANT, ptypes::GENERIC);
                 // inspect?
-            assert_eq!(v.vsubtype, PTYPE_GENERIC, "subtype not found.");
+            assert_eq!(v.vsubtype, ptypes::GENERIC, "subtype not found.");
                 // find?
             let vid = v.id;
                 // confirm
@@ -696,13 +679,13 @@ mod tests {
         )]
         fn create_delete_plant(){
             testing_env!(get_context(robert(), 0));
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
 
                 // create
-            let p = contract.mint_plant(PTYPE_GENERIC);
+            let p = contract.mint_plant(ptypes::GENERIC);
                 // inspect
-            assert_eq!(p.vtype, VTYPE_PLANT, "vtype not saved");
-            assert_eq!(p.vsubtype, PTYPE_GENERIC, "vsubtype not saved");
+            assert_eq!(p.vtype, vtypes::PLANT, "vtype not saved");
+            assert_eq!(p.vsubtype, ptypes::GENERIC, "vsubtype not saved");
                 // find
             let same_p = contract.get_plant(p.id);
             assert_eq!(p.id, same_p.id, "cant get plant");
@@ -717,10 +700,10 @@ mod tests {
         #[test]
         fn harvest_plant(){
             testing_env!(get_context(robert(), 0));
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
 
                 // create
-            let p = contract.mint_plant(PTYPE_GENERIC);
+            let p = contract.mint_plant(ptypes::GENERIC);
             let h = contract.harvest_plant(&p);
                 // inspect
             assert_eq!(p.id, h.parent, "parentage suspect");
@@ -729,7 +712,7 @@ mod tests {
         #[test]
         fn test_gen_id(){
             testing_env!(get_context(robert(), 0));
-            let contract = NonFungibleTokenBasic::new(robert());
+            let contract = PlantaryContract::new(robert());
 
             let _randid = contract.gen_token_id();
         }
@@ -737,7 +720,7 @@ mod tests {
         #[test]
         fn mint_burn_token(){
             testing_env!(get_context(robert(), 0));
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             let token_id = 19u64;
 
             // mint
@@ -753,7 +736,7 @@ mod tests {
         )]
         fn cant_burn_mine(){
             testing_env!(get_context(robert(), 0));
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             let token_id = 19u64;
             // mint
             contract.mint_token(mike(), token_id);
@@ -765,7 +748,7 @@ mod tests {
         #[test]
         fn get_owner_tokens(){
             testing_env!(get_context(robert(), 0));
-            let mut contract = NonFungibleTokenBasic::new(robert());
+            let mut contract = PlantaryContract::new(robert());
             let mut token_id = 19u64;
 
             // mint 3
