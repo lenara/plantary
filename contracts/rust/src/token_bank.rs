@@ -213,3 +213,291 @@ impl NEP4 for TokenBank {
     
 }
 
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use near_sdk::MockedBlockchain;
+    use near_sdk::{testing_env, VMContext};
+    //use crate::token_bank::NEP4;
+
+    fn joe() -> AccountId {
+        "joe.testnet".to_string()
+    }
+    fn robert() -> AccountId {
+        "robert.testnet".to_string()
+    }
+    fn mike() -> AccountId {
+        "mike.testnet".to_string()
+    }
+
+    // part of writing unit tests is setting up a mock context
+    // this is a useful list to peek at when wondering what's available in env::*
+    fn get_context(predecessor_account_id: String, storage_usage: u64) -> VMContext {
+        VMContext {
+            current_account_id: "alice.testnet".to_string(),
+            signer_account_id: "jane.testnet".to_string(),
+            signer_account_pk: vec![0, 1, 2],
+                predecessor_account_id,
+                input: vec![],
+                block_index: 0,
+                block_timestamp: 0,
+                account_balance: 0,
+                account_locked_balance: 0,
+                storage_usage,
+                attached_deposit: 0,
+                prepaid_gas: 10u64.pow(18),
+                random_seed: vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
+                is_view: false,
+                output_data_receivers: vec![],
+                epoch_height: 19,
+            }
+        }
+
+        #[test]
+        fn grant_access() {
+            let context = get_context(robert(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let length_before = tb.account_gives_access.len();
+            assert_eq!(0, length_before, "Expected empty account access Map.");
+            tb.grant_access(mike());
+            tb.grant_access(joe());
+            let length_after = tb.account_gives_access.len();
+            assert_eq!(1, length_after, "Expected an entry in the account's access Map.");
+            let predecessor_hash = env::sha256(robert().as_bytes());
+            let num_grantees = tb.account_gives_access.get(&predecessor_hash).unwrap();
+            assert_eq!(2, num_grantees.len(), "Expected two accounts to have access to predecessor.");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Access does not exist."#
+        )]
+        fn revoke_access_and_panic() {
+            let context = get_context(robert(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            tb.revoke_access(joe());
+        }
+
+        #[test]
+        fn add_revoke_access_and_check() {
+            // Joe grants access to Robert
+            let mut context = get_context(joe(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            tb.grant_access(robert());
+
+            // does Robert have access to Joe's account? Yes.
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            let mut robert_has_access = tb.check_access(&joe());
+            assert_eq!(true, robert_has_access, "After granting access, check_access call failed.");
+
+            // Joe revokes access from Robert
+            context = get_context(joe(), env::storage_usage());
+            testing_env!(context);
+            tb.revoke_access(robert());
+
+            // does Robert have access to Joe's account? No
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            robert_has_access = tb.check_access(&joe());
+            assert_eq!(false, robert_has_access, "After revoking access, check_access call failed.");
+        }
+
+        #[test]
+        fn mint_token_get_token_owner() {
+            let context = get_context(robert(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            tb.mint_token(mike(), 19u64);
+            let owner = tb.get_token_owner(19u64);
+            assert_eq!(mike(), owner, "Unexpected token owner.");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Attempt to transfer a token with no access."#
+        )]
+        fn transfer_from_with_no_access_should_fail() {
+            // Mike owns the token.
+            // Robert is trying to transfer it to Robert's account without having access.
+            let context = get_context(robert(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(mike(), token_id);
+            tb.transfer_from(mike(), robert(), token_id.clone());
+        }
+
+        #[test]
+        fn transfer_from_with_escrow_access() {
+            // Escrow account: robert.testnet
+            // Owner account: mike.testnet
+            // New owner account: joe.testnet
+            let mut context = get_context(mike(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(mike(), token_id);
+            // Mike grants access to Robert
+            tb.grant_access(robert());
+
+            // Robert transfers the token to Joe
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            tb.transfer_from(mike(), joe(), token_id.clone());
+
+            // Check new owner
+            let owner = tb.get_token_owner(token_id.clone());
+            assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Attempt to transfer a token from wrong owner."#
+        )]
+        fn transfer_from_with_escrow_access_wrong_owner_id() {
+            // Escrow account: robert.testnet
+            // Owner account: mike.testnet
+            // New owner account: joe.testnet
+            let mut context = get_context(mike(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(mike(), token_id);
+            // Mike grants access to Robert
+            tb.grant_access(robert());
+
+            // Robert transfers the token to Joe
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            tb.transfer_from(robert(), joe(), token_id.clone());
+        }
+
+        #[test]
+        fn transfer_from_with_your_own_token() {
+            // Owner account: robert.testnet
+            // New owner account: joe.testnet
+
+            testing_env!(get_context(robert(), 0));
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(robert(), token_id);
+
+            // Robert transfers the token to Joe
+            tb.transfer_from(robert(), joe(), token_id.clone());
+
+            // Check new owner
+            let owner = tb.get_token_owner(token_id.clone());
+            assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Attempt to call transfer on tokens belonging to another account."#
+        )]
+        fn transfer_with_escrow_access_fails() {
+            // Escrow account: robert.testnet
+            // Owner account: mike.testnet
+            // New owner account: joe.testnet
+            let mut context = get_context(mike(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(mike(), token_id);
+            // Mike grants access to Robert
+            tb.grant_access(robert());
+
+            // Robert transfers the token to Joe
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            tb.transfer(joe(), token_id.clone());
+        }
+
+        #[test]
+        fn transfer_with_your_own_token() {
+            // Owner account: robert.testnet
+            // New owner account: joe.testnet
+
+            testing_env!(get_context(robert(), 0));
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(robert(), token_id);
+
+            // Robert transfers the token to Joe
+            tb.transfer(joe(), token_id.clone());
+
+            // Check new owner
+            let owner = tb.get_token_owner(token_id.clone());
+            assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
+        }
+
+        #[test]
+        fn mint_burn_token(){
+            testing_env!(get_context(robert(), 0));
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+
+            // mint
+            tb.mint_token(robert(), token_id);
+            
+            // burn
+            tb.burn_token(token_id);
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"not yours to burn"#
+        )]
+        fn cant_burn_mine(){
+            testing_env!(get_context(robert(), 0));
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            // mint
+            tb.mint_token(mike(), token_id);
+            
+            // burn (as robert)
+            tb.burn_token(token_id);
+        }
+
+        #[test]
+        fn get_owner_tokens(){
+            testing_env!(get_context(robert(), 0));
+            let mut tb = TokenBank::new();
+            let mut token_id = 19u64;
+
+            // mint 3
+            tb.mint_token(robert(), token_id);
+            token_id += 1;
+            tb.mint_token(robert(), token_id);
+            token_id += 1;
+            tb.mint_token(robert(), token_id);
+
+            // get them all
+            let mut tokens = tb.get_owner_tokens(&robert());
+
+            // should be 3
+            //
+            assert_eq!(tokens.len(), 3, "didn't get all 3 tokens");
+            // burn 1
+            token_id = 19u64;
+            tb.burn_token(token_id);
+            // get them all 
+            tokens = tb.get_owner_tokens(&robert());
+            // should be 2
+            assert_eq!(tokens.len(), 2, "didn't get both tokens");
+            // burn both
+            token_id += 1;
+            tb.burn_token(token_id);
+            token_id += 1;
+            tb.burn_token(token_id);
+            // get them all
+            tokens = tb.get_owner_tokens(&robert());
+            // should be empty
+            assert_eq!(tokens.len(), 0, "why did i get tokens?");
+        }
+}
+
