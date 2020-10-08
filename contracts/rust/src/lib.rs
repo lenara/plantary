@@ -10,8 +10,9 @@
 use borsh::{BorshDeserialize, BorshSerialize};
 use serde::{Serialize};
 use near_sdk::collections::UnorderedMap;
-//use near_sdk::collections::UnorderedSet;
 use near_sdk::{env, near_bindgen, AccountId};
+
+use rand::prelude::*;
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -20,7 +21,7 @@ mod token_bank;
 use token_bank::{TokenBank, TokenId};
 
 mod constants;
-use constants::{VeggieType, VeggieSubType, vtypes, htypes};
+use constants::{VeggieType, VeggieSubType, vtypes, htypes, P_POOL};
 
 ///
 /// the veggie section
@@ -34,24 +35,36 @@ pub struct Veggie {
     pub vtype: VeggieType,
     pub vsubtype: VeggieSubType,
     pub parent: TokenId,
+    pub dna: u64,
+    pub meta_url: String,
 }
 
 impl Veggie {
-    pub fn new(id: TokenId, vtype: VeggieType, vsubtype:VeggieSubType) -> Self {
+    pub fn new(mut rng: ThreadRng, vtype: VeggieType, vsubtype:VeggieSubType) -> Self {
+        // choose random ID
+        let id = rng.gen();
+
+        // pick a meta URL at random from the plant pool for the given subtype
+        let meta_url: String;
+        if vtype == vtypes::PLANT {
+            let subtypes = &P_POOL[&vsubtype];
+            meta_url = subtypes[rng.gen_range(0, subtypes.len())].to_string();
+        } else {
+            // TODO
+            meta_url = "TBD".to_string();
+        }
+
         Self {
             id: id,
             vtype: vtype,           // plant or harvest 
             vsubtype: vsubtype,
             parent: 0,
-            // dna ...
+            dna: rng.gen(),
+            meta_url: meta_url,
             // rarity ...
         }
     }
 }
-
-// veggie traits
-//
-
 
 pub trait Veggies {
     fn create_veggie(&mut self, 
@@ -80,13 +93,24 @@ impl Veggies for PlantaryContract {
                     vtype: VeggieType,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
-        // make a local veggie
-        let c = Veggie::new(self.gen_token_id(), vtype, vsubtype);
+
+        // TODO: seed RNG!
+        let rng = thread_rng();
+
+        // roll veggies until we have a unique one:
+        let mut v = Veggie::new(rng, vtype, vsubtype);
+        loop {
+            match self.veggies.get(&v.id) {
+                None => { break; }
+                Some(_) => { v = Veggie::new(rng, vtype, vsubtype); }
+            }
+        }
+
         // record in the static list of veggies
-        self.veggies.insert(&c.id, &c);
+        self.veggies.insert(&v.id, &v);
         // record ownership in the nft structure
-        self.token_bank.mint_token(env::predecessor_account_id(), c.id);
-        return c;
+        self.token_bank.mint_token(env::predecessor_account_id(), v.id);
+        return v;
     }
 
     fn get_veggie(&self, vid: TokenId) -> Veggie {
@@ -281,9 +305,9 @@ mod tests {
             testing_env!(get_context(robert(), 0));
             let mut contract = PlantaryContract::new(robert());
                 // create
-            let v = contract.create_veggie(vtypes::PLANT, ptypes::GENERIC);
+            let v = contract.create_veggie(vtypes::PLANT, ptypes::MONEY);
                 // inspect?
-            assert_eq!(v.vsubtype, ptypes::GENERIC, "subtype not found.");
+            assert_eq!(v.vsubtype, ptypes::MONEY, "subtype not found.");
                 // find?
             let vid = v.id;
                 // confirm
@@ -307,10 +331,10 @@ mod tests {
             let mut contract = PlantaryContract::new(robert());
 
                 // create
-            let p = contract.mint_plant(ptypes::GENERIC);
+            let p = contract.mint_plant(ptypes::MONEY);
                 // inspect
             assert_eq!(p.vtype, vtypes::PLANT, "vtype not saved");
-            assert_eq!(p.vsubtype, ptypes::GENERIC, "vsubtype not saved");
+            assert_eq!(p.vsubtype, ptypes::MONEY, "vsubtype not saved");
                 // find
             let same_p = contract.get_plant(p.id);
             assert_eq!(p.id, same_p.id, "cant get plant");
@@ -328,7 +352,7 @@ mod tests {
             let mut contract = PlantaryContract::new(robert());
 
                 // create
-            let p = contract.mint_plant(ptypes::GENERIC);
+            let p = contract.mint_plant(ptypes::MONEY);
             let h = contract.harvest_plant(&p);
                 // inspect
             assert_eq!(p.id, h.parent, "parentage suspect");
