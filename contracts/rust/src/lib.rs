@@ -31,7 +31,7 @@ use constants::{VeggieType, VeggieSubType, vtypes, htypes, P_POOL};
 /// (not necessarily the right way to do this in rust, i'm still learning ...)
 ///
 
-#[derive(Serialize, BorshDeserialize, BorshSerialize)]
+#[derive(PartialEq, Debug, Serialize, BorshDeserialize, BorshSerialize)]
 pub struct Veggie {
     pub id: TokenId,
     pub vtype: VeggieType,
@@ -73,7 +73,10 @@ pub trait Veggies {
 
     fn get_plant(&self, vid: TokenId) -> Veggie;
 
+    fn get_owner_plants(&self, uid: AccountId) -> Vec<Veggie>;
+
     fn delete_plant(&mut self, vid: TokenId);
+
 }
 
 // veggie implementation
@@ -156,6 +159,20 @@ impl Veggies for PlantaryContract {
 
     fn get_plant(&self, vid: TokenId) -> Veggie {
         return self.get_veggie(vid);
+    }
+
+    fn get_owner_plants(&self, uid: AccountId) -> Vec<Veggie> {
+        // get all owner tokens:
+        //let owner_tokens = self.token_bank.get_owner_tokens(&uid).to_vec();
+        let owner_tokens = self.token_bank.get_owner_tokens(&uid).to_vec();
+        // look up their veggies
+        let mut owner_veggies: Vec<Veggie> = Vec::new();
+        for ot in owner_tokens {
+            let ov = self.get_veggie(ot);
+            if ov.vtype == vtypes::PLANT { owner_veggies.push(ov); }
+        }
+
+        owner_veggies
     }
 
     fn delete_plant(&mut self, vid: TokenId){
@@ -303,10 +320,7 @@ mod tests {
             let vid = v.id;
                 // confirm
             let _foundv = contract.get_veggie(vid); // should not panic
-            /*
-            // TODO: how to compare two objects?
             assert_eq!(v, _foundv, "veggie did not fetch right");
-            */
                 // delete
             contract.delete_veggie(vid); // TODO: should veggie have its own method? so like v.burn() ...
                 // confirm deleted
@@ -348,4 +362,28 @@ mod tests {
                 // inspect
             assert_eq!(p.id, h.parent, "parentage suspect");
         }
+
+        #[test]
+        fn get_owner_plants(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = PlantaryContract::new(robert());
+
+            // mint some plants
+            let _p1 = contract.mint_plant(ptypes::MONEY);
+            let _p2 = contract.mint_plant(ptypes::ORACLE);
+            let _p3 = contract.mint_plant(ptypes::PORTRAIT);
+            // harvest some fruit
+            let _h1 = contract.harvest_plant(&_p1);
+            let _h2 = contract.harvest_plant(&_p1);
+            let _h3 = contract.harvest_plant(&_p2);
+
+            // get_owner_tokens should have it all
+            let ot = contract.token_bank.get_owner_tokens(&robert());
+            assert_eq!(ot.len(), 6, "wrong number of veggies");
+
+            // get_owner_plants should just have plants
+            let op = contract.get_owner_plants(robert());
+            assert_eq!(op.len(), 3, "wrong number of plants");
+        }
 }
+
