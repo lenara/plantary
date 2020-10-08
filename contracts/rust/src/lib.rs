@@ -73,7 +73,9 @@ pub trait Veggies {
 
     fn get_plant(&self, vid: TokenId) -> Veggie;
 
-    fn get_owner_plants(&self, uid: AccountId) -> Vec<Veggie>;
+    fn get_owner_plants(&self, owner_id: AccountId) -> Vec<Veggie>;
+
+    //fn get_plants(&self, owner_id: AccountId) -> Vec<Veggie>;
 
     fn delete_plant(&mut self, vid: TokenId);
 
@@ -161,10 +163,9 @@ impl Veggies for PlantaryContract {
         return self.get_veggie(vid);
     }
 
-    fn get_owner_plants(&self, uid: AccountId) -> Vec<Veggie> {
+    fn get_owner_plants(&self, owner_id: AccountId) -> Vec<Veggie> {
         // get all owner tokens:
-        //let owner_tokens = self.token_bank.get_owner_tokens(&uid).to_vec();
-        let owner_tokens = self.token_bank.get_owner_tokens(&uid).to_vec();
+        let owner_tokens = self.token_bank.get_owner_tokens(&owner_id).to_vec();
         // look up their veggies
         let mut owner_veggies: Vec<Veggie> = Vec::new();
         for ot in owner_tokens {
@@ -259,8 +260,8 @@ impl PlantaryContract {
         }
     }
 
-    pub fn get_owner_tokens(&self, account_id: &AccountId) -> Vec<TokenId> {
-        self.token_bank.get_owner_tokens(&account_id).to_vec()
+    pub fn get_owner_tokens(&self, owner_id: &AccountId) -> Vec<TokenId> {
+        self.token_bank.get_owner_tokens(&owner_id).to_vec()
     }
 
     /// helper function determining contract ownership

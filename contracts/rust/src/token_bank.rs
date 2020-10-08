@@ -71,6 +71,22 @@ impl TokenBank {
             None => UnorderedSet::new(b"owner-tokens-set".to_vec())
         }
     }
+
+    // From the total set of tokens, get a page's worth
+    // (NOTE: if we need this to be really pageable & consistent, then our Unordered Map should be
+    // replaced with an Ordered one ...)
+    pub fn get_tokens_paged(&self, pagesize: u16, page: u16) -> Vec<TokenId> {
+        let tokens: Vec<TokenId> = self.token_to_account.keys().collect();
+        let token_count = tokens.len();
+        
+        let startpoint: usize = pagesize as usize * page as usize;
+        if startpoint > token_count { return Vec::new(); }
+
+        let mut endpoint : usize =  startpoint + pagesize as usize;
+        if endpoint > token_count { endpoint = token_count; }
+
+        tokens[startpoint .. endpoint].to_vec()
+    }
     
     /// Creates a token for owner_id, doesn't use autoincrement, fails if id is taken
     pub fn mint_token(&mut self, owner_id: String, token_id: TokenId) {
@@ -498,6 +514,40 @@ mod tests {
             tokens = tb.get_owner_tokens(&robert());
             // should be empty
             assert_eq!(tokens.len(), 0, "why did i get tokens?");
+        }
+
+        #[test]
+        fn get_tokens_paged(){
+            testing_env!(get_context(robert(), 0));
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+
+            // mint 23 tokens
+            for n in 0..23 {
+                tb.mint_token(robert(), token_id + n);
+            }
+
+            // get three pages of size 7
+            // check that they are all full
+            for p in 0..3 {
+                let tokens = tb.get_tokens_paged(7,p);
+                assert_eq!(tokens.len(), 7, "bad token page size");
+            }
+
+            // get another page of size 7
+            // check that it is only 2 items long
+            let tokens = tb.get_tokens_paged(7,3);
+            assert_eq!(tokens.len(), 2, "bad token end page size");
+
+            // get yet another page, should be empty.
+            let tokens = tb.get_tokens_paged(7,100);
+            assert_eq!(tokens.len(), 0, "bad token blank page size");
+
+            // check that we can get the whole thing in one big slurp
+            let tokens = tb.get_tokens_paged(23,0);
+            assert_eq!(tokens.len(), 23, "bad token total page size");
+            let tokens = tb.get_tokens_paged(100,0);
+            assert_eq!(tokens.len(), 23, "bad token total page size");
         }
 }
 
