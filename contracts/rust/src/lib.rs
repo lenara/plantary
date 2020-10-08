@@ -13,6 +13,8 @@ use near_sdk::collections::UnorderedMap;
 use near_sdk::{env, near_bindgen, AccountId};
 
 use rand::prelude::*;
+use rand_chacha::ChaCha8Rng;
+use rand_seeder::{Seeder};
 
 #[global_allocator]
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
@@ -40,27 +42,16 @@ pub struct Veggie {
 }
 
 impl Veggie {
-    pub fn new(mut rng: ThreadRng, vtype: VeggieType, vsubtype:VeggieSubType) -> Self {
-        // choose random ID
-        let id = rng.gen();
-
-        // pick a meta URL at random from the plant pool for the given subtype
-        let meta_url: String;
-        if vtype == vtypes::PLANT {
-            let subtypes = &P_POOL[&vsubtype];
-            meta_url = subtypes[rng.gen_range(0, subtypes.len())].to_string();
-        } else {
-            // TODO
-            meta_url = "TBD".to_string();
-        }
+    //pub fn new(rng: &mut ChaCha8Rng, vtype: VeggieType, vsubtype:VeggieSubType) -> Self {
+    pub fn new(id: TokenId, parent_id: TokenId, vtype: VeggieType, vsubtype:VeggieSubType, dna: u64, meta_url: &String) -> Self {
 
         Self {
             id: id,
             vtype: vtype,           // plant or harvest 
             vsubtype: vsubtype,
-            parent: 0,
-            dna: rng.gen(),
-            meta_url: meta_url,
+            parent: parent_id,
+            dna: dna,
+            meta_url: meta_url.to_string(),
             // rarity ...
         }
     }
@@ -70,6 +61,7 @@ pub trait Veggies {
     fn create_veggie(&mut self, 
                     vtype: VeggieType,
                     vsubtype: VeggieSubType,
+                    parent_id: TokenId,
                     ) -> Veggie;
 
     fn get_veggie(&self, vid: TokenId) -> Veggie;
@@ -92,19 +84,35 @@ impl Veggies for PlantaryContract {
     fn create_veggie(&mut self, 
                     vtype: VeggieType,
                     vsubtype: VeggieSubType,
+                    parent_id: TokenId,
                     ) -> Veggie {
 
-        // TODO: seed RNG!
-        let rng = thread_rng();
+        // seed RNG
+        let mut rng: ChaCha8Rng = Seeder::from(env::random_seed()).make_rng();
 
-        // roll veggies until we have a unique one:
-        let mut v = Veggie::new(rng, vtype, vsubtype);
-        loop {
-            match self.veggies.get(&v.id) {
+        // generate veggie-unique id
+        let mut vid: TokenId;
+        loop { 
+            vid = rng.gen();
+            match self.veggies.get(&vid) {
                 None => { break; }
-                Some(_) => { v = Veggie::new(rng, vtype, vsubtype); }
+                Some(_) => { continue; }
             }
         }
+
+        // pick a meta URL at random from the plant pool for the given subtype
+        let meta_url: String;
+        if vtype == vtypes::PLANT {
+            let subtypes = &P_POOL[&vsubtype];
+            meta_url = subtypes[rng.gen_range(0, subtypes.len())].to_string();
+        } else {
+            // TODO
+            meta_url = "TBD".to_string();
+        }
+
+        let dna: u64 = rng.gen();
+
+        let v = Veggie::new(vid, parent_id, vtype, vsubtype, dna, &meta_url);
 
         // record in the static list of veggies
         self.veggies.insert(&v.id, &v);
@@ -141,7 +149,9 @@ impl Veggies for PlantaryContract {
                     ) -> Veggie {
         // make sure that only the owner can call this funtion (needed?)
         self.only_owner();
-        return self.create_veggie(vtypes::PLANT, vsubtype);
+        // plants have no parents
+        let parent_id = 0;
+        return self.create_veggie(vtypes::PLANT, vsubtype, parent_id);
     }
 
     fn get_plant(&self, vid: TokenId) -> Veggie {
@@ -161,6 +171,7 @@ impl Veggies for PlantaryContract {
 pub trait Harvests {
     fn create_harvest(&mut self,
                     vsubtype: VeggieSubType,
+                    parent_id: TokenId,
                     )->Veggie;
 
     fn get_harvest(self, vid: TokenId) -> Veggie;
@@ -173,8 +184,9 @@ pub trait Harvests {
 impl Harvests for PlantaryContract {
     fn create_harvest(&mut self,
                     vsubtype: VeggieSubType,
+                    parent_id: TokenId,
                     ) -> Veggie {
-        return self.create_veggie(vtypes::HARVEST, vsubtype);
+        return self.create_veggie(vtypes::HARVEST, vsubtype, parent_id);
     }
 
     fn get_harvest(self, vid: TokenId) -> Veggie {
@@ -193,8 +205,7 @@ impl Harvests for PlantaryContract {
             env::panic(b"non-plant harvest");
         }
         // TODO: for every plant type there is a set of allowed harvest types, or none allowed)
-        let mut h = self.create_harvest(htypes::GENERIC);
-        h.parent = parent.id;
+        let h = self.create_harvest(htypes::GENERIC, parent.id);
         return h;
     }
 }
@@ -225,30 +236,10 @@ impl PlantaryContract {
         assert!(env::is_valid_account_id(owner_id.as_bytes()), "Owner's account ID is invalid.");
         assert!(!env::state_exists(), "Already initialized");
         Self {
-      //      token_to_account: UnorderedMap::new(b"token-belongs-to".to_vec()),
-     //       account_to_tokens: UnorderedMap::new(b"account-owns".to_vec()),
-      //      account_gives_access: UnorderedMap::new(b"gives-access".to_vec()),
             token_bank: TokenBank::new(),
             owner_id,
             veggies: UnorderedMap::new(b"veggies".to_vec()),
         }
-    }
-
-   pub fn gen_token_id(&self) -> TokenId {
-        // TODO: ask a pro if this is anything like the right way to get a random tokenID in NEAR!
-        // Near provides this vector of random bytes, will it always be 32 bytes long? we only need 8 ...
-        let s = env::random_seed();
-        let mut id: TokenId = 0;
-        for val in s[0..7].iter() {
-            id = (id << 8) + (*val as u64);
-        }
-
-        // if ever that totally random ID is in already in use, just increment.
-        while self.token_bank.token_to_account.get(&id).is_some(){
-            id += 1;
-        }
-
-        return id; 
     }
 
     pub fn get_owner_tokens(&self, account_id: &AccountId) -> Vec<TokenId> {
@@ -305,7 +296,7 @@ mod tests {
             testing_env!(get_context(robert(), 0));
             let mut contract = PlantaryContract::new(robert());
                 // create
-            let v = contract.create_veggie(vtypes::PLANT, ptypes::MONEY);
+            let v = contract.create_veggie(vtypes::PLANT, ptypes::MONEY, 0);
                 // inspect?
             assert_eq!(v.vsubtype, ptypes::MONEY, "subtype not found.");
                 // find?
@@ -356,13 +347,5 @@ mod tests {
             let h = contract.harvest_plant(&p);
                 // inspect
             assert_eq!(p.id, h.parent, "parentage suspect");
-        }
-
-        #[test]
-        fn test_gen_id(){
-            testing_env!(get_context(robert(), 0));
-            let contract = PlantaryContract::new(robert());
-
-            let _randid = contract.gen_token_id();
         }
 }

@@ -339,6 +339,8 @@ dependencies = [
  "lazy_static",
  "near-sdk",
  "rand",
+ "rand_chacha",
+ "rand_seeder",
  "serde",
  "serde_json",
  "wee_alloc",
@@ -405,6 +407,15 @@ name = "rand_hc"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ca3129af7b92a17112d59ad498c6f81eaf463253766b90396d39ea7a39d6613c"
+dependencies = [
+ "rand_core",
+]
+
+[[package]]
+name = "rand_seeder"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c4bf0cc8c3f454868125d6fc32b694353d48b237a3e353cca1e82be069c125a7"
 dependencies = [
  "rand_core",
 ]

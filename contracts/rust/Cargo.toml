@@ -14,7 +14,9 @@ near-sdk = "0.11.0"
 borsh = "0.6.2"
 wee_alloc = "0.4.5"
 rand = "0.7.3"
+rand_chacha = "0.2.2"
 lazy_static = "1.4.0"
+rand_seeder = "0.2.1"
 
 [profile.release]
 codegen-units = 1
