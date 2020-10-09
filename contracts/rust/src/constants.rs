@@ -1,7 +1,7 @@
 #![allow(unused)]
 
-pub type VeggieType = i8;
-pub type VeggieSubType = i8;
+pub type VeggieType = u8;
+pub type VeggieSubType = u8;
 pub type PlantType = VeggieSubType;
 pub type HarvestType = VeggieSubType;
 
@@ -52,7 +52,7 @@ use lazy_static::lazy_static;
 use std::collections::HashMap;
 
 lazy_static! {
-    pub static ref P_POOL: HashMap<i8, Vec<&'static str>> = {
+    pub static ref P_POOL: HashMap<u8, Vec<&'static str>> = {
         let mut map = HashMap::new();
         map.insert(ptypes::ORACLE, vec![
     "https://3bvdryfdm3sswevmvr3poka2ucda5dfqag3bz4td72affctbmaea.arweave.net/2Go44KNm5SsSrKx29ygaoIYOjLABthzyY_6AUophYAg", 

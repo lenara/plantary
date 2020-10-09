@@ -152,10 +152,9 @@ impl Veggies for PlantaryContract {
     fn mint_plant(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
-        // make sure that only the owner can call this funtion (needed?)
-        self.only_owner();
         // plants have no parents
         let parent_id = 0;
+
         return self.create_veggie(vtypes::PLANT, vsubtype, parent_id);
     }
 
@@ -264,11 +263,13 @@ impl PlantaryContract {
         self.token_bank.get_owner_tokens(&owner_id).to_vec()
     }
 
+    /*
     /// helper function determining contract ownership
     /// Really these token functions all need some clearer security framework.
     fn only_owner(&mut self) {
         assert_eq!(env::predecessor_account_id(), self.owner_id, "Only contract owner can call this method.");
     }
+    */
 }
 
 // use the attribute below for unit tests
@@ -294,10 +295,10 @@ mod tests {
                 input: vec![],
                 block_index: 0,
                 block_timestamp: 0,
-                account_balance: 0,
+                account_balance: 10 ^ 28,
                 account_locked_balance: 0,
                 storage_usage,
-                attached_deposit: 0,
+                attached_deposit: 10 ^ 27,
                 prepaid_gas: 10u64.pow(18),
                 random_seed: vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
                 is_view: false,
