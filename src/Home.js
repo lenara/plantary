@@ -1,8 +1,34 @@
 import React from 'react'
 import { connect, Contract, keyStores, WalletConnection } from 'near-api-js'
+import { login, logout } from './utils'
 import getConfig from './config'
 
+//const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 const nearConfig = getConfig(process.env.NODE_ENV || 'development')
+
+function AccountOrWallet() {
+	if (window.walletConnection.isSignedIn()) 
+		return window.walletConnection.getAccountId();
+	else
+		return "CONNECT WALLET";
+}
+
+function WalletLink() {
+  function handleClick(e) {
+    e.preventDefault();
+		if (!window.walletConnection.isSignedIn()) {
+			login();
+		} else {
+			logout();
+		}
+  }
+
+	let faIcon = window.walletConnection.isSignedIn() ? "fa-sign-out-alt" : "fa-cog";
+
+  return (
+		<a href="#" className="btn btn-outline-light btn-social mx-1" onClick={handleClick} ><i className={'fas ' + faIcon}></i></a>
+  );
+}
 
 export function Home() {
 	return (
@@ -18,7 +44,7 @@ export function Home() {
                         </li>
                         <li className="nav-item mx-0 mx-lg-1"><a className="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#contact">ABOUT</a>
                         </li>
-                        <li className="nav-item mx-0 mx-lg-1"><a className="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#connect">CONNECT WALLET</a>
+												<li className="nav-item mx-0 mx-lg-1"><a className="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#connect"><AccountOrWallet /></a>
                         </li>
                     </ul>
                 </div>
@@ -334,7 +360,7 @@ THIS SECTION COMING SOON!</p>
                     </div>
 										{/* Footer Social Icons*/}
                     <div className="col-lg-4 mb-5 mb-lg-0">
-                        <h4 className="mb-4">CONNECT WALLET</h4><a className="btn btn-outline-light btn-social mx-1" href="https://www.twitter.com/plantarydapp"><i className="fas fa-cog"></i></a>
+											<h4 className="mb-4"><AccountOrWallet /></h4><WalletLink />
                     </div>
 										{/* Footer About Text*/}
                     <div className="col-lg-4">

@@ -90,13 +90,12 @@ Collect Art
 
 The plant NFT images will feature commissioned art from different artists. Plantary will open submissions for artists to send plant artwork. After submissions are approved, artists get a commission on first sales, and royalties on further secondary market sales.
 
-Deployment & Testing (9/28/2020)
+Deployment & Testing (10/10/2020)
 -
 
 This is a work in progress!  
-At the time of this writing, you can build the smart contract, 
-deploy it on the testnet and interact with it via the NEAR CLI.
-The following instructions will walk you through that.
+As of 10/10, you can run a crude mockup of the app -- all it can do is login and logout.
+But it's interacting with your near wallet, and deploying a smart contract.
 
 * Check out the git repo, or open it in gitpod
 
@@ -105,42 +104,35 @@ The following instructions will walk you through that.
     yarn install
     rustup target add wasm32-unknown-unknown
 ```
-* Get the NEAR CLI in your searchpath.  (Here is the unix/gitpod method; windows users do some other thing ...)
-```    
-export PATH="/workspace/plantary/node_modules/near-cli/bin/":$PATH
-```
 * Build and test the proejct:
 ```
     yarn build
     yarn test
+```
+* Start the app!
+```
+		yarn start
+```
+This will deploy the contract on the testnet, build the UI, and open a web browser.
+In the console you'll see a line something like this:
+```
+Starting deployment. Account id: dev-1602291649659-5495547, node: https://rpc.testnet.near.org, helper: https://helper.testnet.near.org, file: ./out/main.wasm
+```
+Take note of that Account id: dev-numbersnumbersnumbers.  You can use that for direct interaction with the contract you deployed, via the NEAR CLI.
+
+Below are instructions for manually interacting with the smart contract on the command line.
+This will be less important as we get those features into the app.  
+But for the time being, here are the NEAR CLI instructions for console use:
+
+* First, get the NEAR CLI in your searchpath.  (Here is the unix/gitpod method; windows users do some other thing ...)
+```    
+export PATH="/workspace/plantary/node_modules/near-cli/bin/":$PATH
 ```
 * Log in to the testnet with the NEAR CLI
 ```
     near login
 ```
   ... and click the link provided to open your wallet to NEAR.
-
-* Deploy the smart contract in the testnet
-```
-    near dev-deploy out/plantary_nft.wasm
-```
-  This will show you some output like so:
-```
-Starting deployment. Account id: dev-1601436477182-8079303, node: https://rpc.testnet.near.org, helper: https://helper.testnet.near.org, file: out/plantary_nft.wasm
-Transaction Id GfwJyUAmpw7hVZduUtMDoCgzNx423YW5dPRANJvvVmyd
-To see the transaction in the transaction explorer, please open this url in your browser
-https://explorer.testnet.near.org/transactions/GfwJyUAmpw7hVZduUtMDoCgzNx423YW5dPRANJvvVmyd
-Done deploying to dev-1601436477182-8079303
-```
-
-  This means the contract is live in the testnet!
-  
-That Account ID, "dev-numbersnumbersnumbers", is not your personal NEAR account.
-  It's another account auto-created just for your deployed contract, for testing purposes.
-  You will need both your user account ID and this contract account ID when you
-  use the NEAR CLI to interact with the contract.  So make a note of it!
-
-  In the examples below, replace YOURACCOUNTID and TESTCONTRACTID with those two ID strings.
 
 * The very first time your contract runs, it must be initialized like so:
 ```

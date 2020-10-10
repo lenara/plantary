@@ -10,13 +10,13 @@ const { networkId } = getConfig('testnet');
 
 export default function App() {
   // use React Hooks to store greeting in component state
-  const [greeting, set_greeting] = React.useState()
+	//const [greeting, set_greeting] = React.useState()
 
   // when the user has not yet interacted with the form, disable the button
-  const [buttonDisabled, setButtonDisabled] = React.useState(true)
+	//const [buttonDisabled, setButtonDisabled] = React.useState(true)
 
   // after submitting the form, we want to show Notification
-  const [showNotification, setShowNotification] = React.useState(false)
+	//const [showNotification, setShowNotification] = React.useState(false)
 
 		/*
   // The useEffect hook can be used to fire side-effects during render
