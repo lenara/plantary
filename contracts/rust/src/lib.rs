@@ -43,13 +43,13 @@ pub struct Veggie {
 
 impl Veggie {
     //pub fn new(rng: &mut ChaCha8Rng, vtype: VeggieType, vsubtype:VeggieSubType) -> Self {
-    pub fn new(id: TokenId, parent_id: TokenId, vtype: VeggieType, vsubtype:VeggieSubType, dna: u64, meta_url: &String) -> Self {
+    pub fn new(id: TokenId, parent_vid: TokenId, vtype: VeggieType, vsubtype:VeggieSubType, dna: u64, meta_url: &String) -> Self {
 
         Self {
             id: id,
             vtype: vtype,           // plant or harvest 
             vsubtype: vsubtype,
-            parent: parent_id,
+            parent: parent_vid,
             dna: dna,
             meta_url: meta_url.to_string(),
             // rarity ...
@@ -61,19 +61,24 @@ pub trait Veggies {
     fn create_veggie(&mut self, 
                     vtype: VeggieType,
                     vsubtype: VeggieSubType,
-                    parent_id: TokenId,
+                    parent_vid: TokenId,
                     ) -> Veggie;
 
-    fn get_veggie(&self, vid: TokenId) -> Veggie;
     fn delete_veggie(&mut self, vid: TokenId);
 
     fn mint_plant(&mut self, 
                     vsubtype: VeggieSubType,
                     )->Veggie;
 
-    fn get_plant(&self, vid: TokenId) -> Veggie;
 
+    // TODO: deprecate!
+    fn get_plant(&self, vid: TokenId) -> Veggie;
     fn get_owner_plants(&self, owner_id: AccountId) -> Vec<Veggie>;
+
+    // TODO: better:
+    fn get_veggie(&self, vid: TokenId) -> Veggie;
+    //fn count_owner_veggies(&self, owner_id: AccountId, vtype: u8) -> u32;
+    //fn get_owner_veggies_page(&self, owner_id: AccountId, vtype: u8, page_size: u16, page: u16) -> Vec<Veggie>;
 
     //fn get_plants(&self, owner_id: AccountId) -> Vec<Veggie>;
 
@@ -89,7 +94,7 @@ impl Veggies for PlantaryContract {
     fn create_veggie(&mut self, 
                     vtype: VeggieType,
                     vsubtype: VeggieSubType,
-                    parent_id: TokenId,
+                    parent_vid: TokenId,
                     ) -> Veggie {
 
         // seed RNG
@@ -117,7 +122,7 @@ impl Veggies for PlantaryContract {
 
         let dna: u64 = rng.gen();
 
-        let v = Veggie::new(vid, parent_id, vtype, vsubtype, dna, &meta_url);
+        let v = Veggie::new(vid, parent_vid, vtype, vsubtype, dna, &meta_url);
 
         // record in the static list of veggies
         self.veggies.insert(&v.id, &v);
@@ -154,10 +159,10 @@ impl Veggies for PlantaryContract {
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
         // plants have no parents
-        let parent_id = 0;
+        let parent_vid = 0;
 
         // TODO: confirm that we were paid the right amount!
-        return self.create_veggie(vtypes::PLANT, vsubtype, parent_id);
+        return self.create_veggie(vtypes::PLANT, vsubtype, parent_vid);
     }
 
     fn get_plant(&self, vid: TokenId) -> Veggie {
@@ -190,7 +195,7 @@ impl Veggies for PlantaryContract {
 pub trait Harvests {
     fn create_harvest(&mut self,
                     vsubtype: VeggieSubType,
-                    parent_id: TokenId,
+                    parent_vid: TokenId,
                     )->Veggie;
 
     fn get_harvest(self, vid: TokenId) -> Veggie;
@@ -203,9 +208,9 @@ pub trait Harvests {
 impl Harvests for PlantaryContract {
     fn create_harvest(&mut self,
                     vsubtype: VeggieSubType,
-                    parent_id: TokenId,
+                    parent_vid: TokenId,
                     ) -> Veggie {
-        return self.create_veggie(vtypes::HARVEST, vsubtype, parent_id);
+        return self.create_veggie(vtypes::HARVEST, vsubtype, parent_vid);
     }
 
     fn get_harvest(self, vid: TokenId) -> Veggie {
@@ -355,6 +360,8 @@ mod tests {
             let _nop = contract.get_plant(p.id); // should panic
         }
 
+        // TODO: Test that we are charged some NEAR tokens when we mint a plant
+
         #[test]
         fn harvest_plant(){
             testing_env!(get_context(robert(), 0));
@@ -366,6 +373,8 @@ mod tests {
                 // inspect
             assert_eq!(p.id, h.parent, "parentage suspect");
         }
+
+        // TODO: test that we can't harvest a plant we don't own.
 
         #[test]
         fn get_owner_plants(){
@@ -381,7 +390,9 @@ mod tests {
             let _h2 = contract.harvest_plant(&_p1);
             let _h3 = contract.harvest_plant(&_p2);
 
-            // get_owner_tokens should have it all
+            // TODO: mint some other plant as some other user than robert() ...
+
+            // get_owner_tokens should have it all for robert()
             let ot = contract.token_bank.get_owner_tokens(&robert());
             assert_eq!(ot.len(), 6, "wrong number of veggies");
 
