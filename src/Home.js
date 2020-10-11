@@ -1,6 +1,6 @@
 import React from 'react'
 import { connect, Contract, keyStores, WalletConnection } from 'near-api-js'
-import { login, logout } from './utils'
+import { login, logout, mintPlant, ptypes } from './utils'
 import getConfig from './config'
 
 //const nearConfig = getConfig(process.env.NODE_ENV || 'development')
@@ -28,6 +28,21 @@ function WalletLink() {
   return (
 		<a href="#" className="btn btn-outline-light btn-social mx-1" onClick={handleClick} ><i className={'fas ' + faIcon}></i></a>
   );
+}
+
+function MintPlantButton(props){
+  function handleClick(e) {
+    e.preventDefault();
+		if (window.walletConnection.isSignedIn()) {
+			mintPlant(props.pType, props.price);
+		} else {
+			login();
+		}
+	}
+
+	return (
+		<button className="btn btn-primary" href="#" onClick={handleClick} data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>
+	)
 }
 
 export function Home() {
@@ -147,7 +162,7 @@ export function Home() {
                                     <p className="mb-5">The oracle plant is a mythical being with syncretic wisdom laying dormant in its fruit, waiting for questions to blossom in the seeker's mind.
 	                                    <br/> <br/><em>Minting fee: 10 Ⓝ</em>
                                     </p>
-                                    <button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>
+																		<MintPlantButton pType={ptypes.ORACLE} price="10" />
                                 </div>
                             </div>
                         </div>
@@ -176,7 +191,7 @@ export function Home() {
                                     <p className="mb-5">You always wished for a money plant and here it is. The mere sight of its wealthy leaves will bring abundance to your life, even if they can't be used to buy groceries.
 	                                    <br/> <br/><em>Minting fee: 30 Ⓝ</em>
                                     </p>
-                                    <button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>
+																		<MintPlantButton pType={ptypes.MONEY} price="30" />
                                 </div>
                             </div>
                         </div>
@@ -205,7 +220,7 @@ export function Home() {
                                     <p className="mb-5">The portrait plant ripens a multitude of faces, each with unique features. You might see in their eyes a reflection of a familiar facet, or a glimpse from the unknown.
 	                                    <br/> <br/><em>Minting fee: 20 Ⓝ</em>
                                     </p>
-                                    <button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>
+																		<MintPlantButton pType={ptypes.PORTRAIT} price="20" />
                                 </div>
                             </div>
                         </div>

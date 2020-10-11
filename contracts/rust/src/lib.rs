@@ -149,12 +149,14 @@ impl Veggies for PlantaryContract {
 
     // same thing for plants
 
+    #[payable]
     fn mint_plant(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
         // plants have no parents
         let parent_id = 0;
 
+        // TODO: confirm that we were paid the right amount!
         return self.create_veggie(vtypes::PLANT, vsubtype, parent_id);
     }
 

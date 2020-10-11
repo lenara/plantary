@@ -17,6 +17,9 @@ pub mod ptypes {
     pub const ORACLE: PlantType = 1;
     pub const PORTRAIT: PlantType = 2;
     pub const MONEY: PlantType = 3;
+    pub const COMPLIMENT: PlantType = 4;
+    pub const INSULT: PlantType = 5;
+    pub const SEED: PlantType = 6;
 }
 // types of harvest
 pub mod htypes {

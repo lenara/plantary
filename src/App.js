@@ -1,6 +1,6 @@
 import 'regenerator-runtime/runtime'
 import React from 'react'
-import { login, logout } from './utils'
+import { login, logout, mintPlant } from './utils'
 import { Home } from './Home'
 import './global.css'
 
@@ -71,6 +71,8 @@ export default function App() {
 	return (
 		<Home />
 	)
+
+	// <!-- the rest of this function is moot but maybe a useful example? -->
 
   return (
     // use React Fragment, <>, to avoid wrapping elements in unnecessary divs
