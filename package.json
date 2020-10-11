@@ -4,6 +4,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "npm run build:contract && npm run build:web",
+		"build:rs": "npm run build:contract",
     "build:contract": "(cd contracts/rust && ./build.sh)",
     "build:web": "parcel build src/index.html --public-url ./",
     "dev:deploy:contract": "near dev-deploy",
