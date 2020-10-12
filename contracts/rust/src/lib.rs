@@ -58,6 +58,7 @@ impl Veggie {
 }
 
 pub trait Veggies {
+    // TODO: private
     fn create_veggie(&mut self, 
                     vtype: VeggieType,
                     vsubtype: VeggieSubType,

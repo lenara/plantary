@@ -1,9 +1,9 @@
 import React from 'react'
 import { connect, Contract, keyStores, WalletConnection } from 'near-api-js'
 import { login, logout, mintPlant, ptypes } from './utils'
+import { Veggies } from './Plants'
 import getConfig from './config'
 
-//const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 
 function AccountOrWallet() {
@@ -370,8 +370,7 @@ THIS SECTION COMING SOON!</p>
 										{/* Footer Location*/}
                     <div className="col-lg-4 mb-5 mb-lg-0">
                         <h4 className="mb-4">MY PLANTS</h4>
-                        <p className="pre-wrap lead mb-0">get_plant
-</p>
+												<Veggies />
                     </div>
 										{/* Footer Social Icons*/}
                     <div className="col-lg-4 mb-5 mb-lg-0">
