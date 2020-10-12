@@ -4,7 +4,7 @@
   "license": "UNLICENSED",
   "scripts": {
     "build": "npm run build:contract && npm run build:web",
-		"build:rs": "npm run build:contract",
+    "build:rs": "npm run build:contract",
     "build:contract": "(cd contracts/rust && ./build.sh)",
     "build:web": "parcel build src/index.html --public-url ./",
     "dev:deploy:contract": "near dev-deploy",
@@ -22,6 +22,8 @@
     "@babel/preset-react": "^7.9.4",
     "babel-jest": "^26.0.0",
     "env-cmd": "^10.1.0",
+    "eslint": "^7.11.0",
+    "eslint-plugin-react": "^7.21.4",
     "gh-pages": "^3.0.0",
     "jest": "^26.0.1",
     "jest-environment-node": "^26.0.0",
