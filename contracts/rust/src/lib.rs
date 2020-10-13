@@ -33,7 +33,7 @@ use constants::{VeggieType, VeggieSubType, vtypes, htypes, P_POOL};
 
 #[derive(PartialEq, Clone, Debug, Serialize, BorshDeserialize, BorshSerialize)]
 pub struct Veggie {
-    pub id: TokenId,
+    pub vid: TokenId,
     pub vtype: VeggieType,
     pub vsubtype: VeggieSubType,
     pub parent: TokenId,
@@ -42,10 +42,10 @@ pub struct Veggie {
 }
 
 impl Veggie {
-    pub fn new(id: TokenId, parent_vid: TokenId, vtype: VeggieType, vsubtype:VeggieSubType, dna: u64, meta_url: &String) -> Self {
+    pub fn new(vid: TokenId, parent_vid: TokenId, vtype: VeggieType, vsubtype:VeggieSubType, dna: u64, meta_url: &String) -> Self {
 
         Self {
-            id: id,
+            vid: vid,
             vtype: vtype,           // plant or harvest 
             vsubtype: vsubtype,
             parent: parent_vid,
@@ -171,7 +171,7 @@ impl Veggies for PlantaryContract {
             env::panic(b"non-plant harvest");
         }
         // TODO: for every plant type there is a set of allowed harvest types, or none allowed)
-        let h = self.create_veggie(vtypes::HARVEST, htypes::GENERIC, parent.id);
+        let h = self.create_veggie(vtypes::HARVEST, htypes::GENERIC, parent.vid);
         return h;
     }
 }
@@ -227,9 +227,9 @@ impl PlantaryContract {
         let v = Veggie::new(vid, parent_vid, vtype, vsubtype, dna, &meta_url);
 
         // record in the static list of veggies
-        self.veggies.insert(&v.id, &v);
+        self.veggies.insert(&v.vid, &v);
         // record ownership in the nft structure
-        self.token_bank.mint_token(env::predecessor_account_id(), v.id);
+        self.token_bank.mint_token(env::predecessor_account_id(), v.vid);
         return v;
     }
 }
@@ -320,7 +320,7 @@ mod tests {
             assert_eq!(v.vtype, vtypes::PLANT, "vtype not saved");
             assert_eq!(v.vsubtype, ptypes::MONEY, "vsubtype not found.");
                 // find?
-            let vid = v.id;
+            let vid = v.vid;
                 // confirm
             let _foundv = contract.get_veggie(vid); // should not panic
             assert_eq!(v, _foundv, "veggie did not fetch right");
@@ -342,9 +342,9 @@ mod tests {
 
                 // create
             let p = contract.mint_plant(ptypes::MONEY);
-            let h = contract.harvest_plant(p.id);
+            let h = contract.harvest_plant(p.vid);
                 // inspect
-            assert_eq!(p.id, h.parent, "parentage suspect");
+            assert_eq!(p.vid, h.parent, "parentage suspect");
         }
 
         // TODO: test that we can't harvest a plant we don't own.
@@ -360,8 +360,8 @@ mod tests {
             let _p2 = contract.mint_plant(ptypes::ORACLE);
             let _p3 = contract.mint_plant(ptypes::PORTRAIT);
             // harvest some fruit
-            let _h1 = contract.harvest_plant(_p1.id);
-            let _h2 = contract.harvest_plant(_p1.id);
+            let _h1 = contract.harvest_plant(_p1.vid);
+            let _h2 = contract.harvest_plant(_p1.vid);
 
             // count_owner_veggies should return 5 for type 0, which is "all"
             assert_eq!(5, contract.count_owner_veggies(robert(), 0));
@@ -397,7 +397,7 @@ mod tests {
 
             // mint 13 harvests
             for _o in 0..13 {
-                contract.harvest_plant(_p23.id);
+                contract.harvest_plant(_p23.vid);
             }
 
             // test plants:
