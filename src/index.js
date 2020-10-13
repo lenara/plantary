@@ -7,7 +7,7 @@ window.nearInitPromise = initContract()
   .then(() => {
     ReactDOM.render(
       <App />,
-      document.querySelector('body')
+      document.querySelector('#page-top')
     )
   })
   .catch(console.error)
