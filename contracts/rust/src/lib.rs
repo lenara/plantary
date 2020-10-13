@@ -78,7 +78,7 @@ pub trait Veggies {
 
     // TODO: better:
     fn get_veggie(&self, vid: TokenId) -> Veggie;
-    //fn count_owner_veggies(&self, owner_id: AccountId, vtype: u8) -> u32;
+    fn count_owner_veggies(&self, owner_id: AccountId, vtype: u8) -> u64;
     //fn get_owner_veggies_page(&self, owner_id: AccountId, vtype: u8, page_size: u16, page: u16) -> Vec<Veggie>;
 
     //fn get_plants(&self, owner_id: AccountId) -> Vec<Veggie>;
@@ -132,6 +132,28 @@ impl Veggies for PlantaryContract {
         return v;
     }
 
+    fn count_owner_veggies(&self, owner_id: AccountId, vtype: u8) -> u64 {
+        let tokens = self.token_bank.get_owner_tokens(&owner_id);
+
+            // type 0 means "count all veggies"
+        if vtype == 0  { 
+            return tokens.len();
+        }
+        
+        if ! (vtype == vtypes::PLANT || vtype == vtypes::HARVEST) {
+            env::panic(b"Unknown veggie type.") 
+        }
+
+        let mut count = 0;
+        for t in tokens.iter() {
+            if self.veggies.get(&t).unwrap().vtype == vtype {
+                count += 1;
+            }
+        }
+        
+        count
+    }
+
     fn get_veggie(&self, vid: TokenId) -> Veggie {
         // TODO: check perms?
         let veggie = match self.veggies.get(&vid) {
@@ -174,13 +196,13 @@ impl Veggies for PlantaryContract {
         // get all owner tokens:
         let owner_tokens = self.token_bank.get_owner_tokens(&owner_id).to_vec();
         // look up their veggies
-        let mut owner_veggies: Vec<Veggie> = Vec::new();
+        let mut owner_plants: Vec<Veggie> = Vec::new();
         for ot in owner_tokens {
             let ov = self.get_veggie(ot);
-            if ov.vtype == vtypes::PLANT { owner_veggies.push(ov); }
+            if ov.vtype == vtypes::PLANT { owner_plants.push(ov); }
         }
 
-        owner_veggies
+        owner_plants
     }
 
     fn delete_plant(&mut self, vid: TokenId){
@@ -400,6 +422,40 @@ mod tests {
             // get_owner_plants should just have plants
             let op = contract.get_owner_plants(robert());
             assert_eq!(op.len(), 3, "wrong number of plants");
+        }
+
+        #[test]
+        fn count_owner_veggies(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = PlantaryContract::new(robert());
+
+            // mint some plants
+            let _p1 = contract.mint_plant(ptypes::MONEY);
+            let _p2 = contract.mint_plant(ptypes::ORACLE);
+            let _p3 = contract.mint_plant(ptypes::PORTRAIT);
+            // harvest some fruit
+            let _h1 = contract.harvest_plant(&_p1);
+            let _h2 = contract.harvest_plant(&_p1);
+
+            // count_owner_veggies should return 5 for type 0, which is "all"
+            assert_eq!(5, contract.count_owner_veggies(robert(), 0));
+            // count_owner_veggies should return 3 for type PLANT
+            assert_eq!(3, contract.count_owner_veggies(robert(), vtypes::PLANT));
+            // count_owner_veggies should return 2 for type HARVEST
+            assert_eq!(2, contract.count_owner_veggies(robert(), vtypes::HARVEST));
+            // this person has no veggies
+            assert_eq!(0, contract.count_owner_veggies("jane.testnet".to_string(), 0));
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Unknown veggie type."#
+        )]
+        fn count_owner_veggies_unknown(){
+            testing_env!(get_context(robert(), 0));
+            let contract = PlantaryContract::new(robert());
+            // count_owner_veggies should panic for unknown types
+            assert_eq!(0, contract.count_owner_veggies(robert(), 23));
         }
 }
 
