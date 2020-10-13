@@ -1,6 +1,6 @@
 //import 'regenerator-runtime/runtime'
 import React from 'react'
-//import { login, logout, mintPlant } from './utils'
+import { vtypes } from './utils'
 //import { Home } from './Home'
 import getConfig from './config'
 
@@ -65,7 +65,6 @@ export class Veggie extends React.Component {
 	}
 
 	render(){
-		// For now just plants ...
 		return (
 			<div className="veggie">
 				<div className="image"><img src={this.state.image}/></div>
@@ -80,6 +79,12 @@ export class Veggie extends React.Component {
 // instantiates individual Veggie components
 
 export class Veggies extends React.Component {
+	static defaultProps = {
+		vtype: 0, // all veggies
+		pageSize: 0, // all veggies
+		page: 0 // all veggies
+	}
+
 	constructor(props) {
     super(props);
 		this.state = {
@@ -88,20 +93,13 @@ export class Veggies extends React.Component {
 			vlist: new Array(),
 		};
 		// necessary?
-		this.getPlantsList= this.getPlantsList.bind(this);
+		this.getVeggiesList= this.getVeggiesList.bind(this);
   }
 
-	componentDidMount() {
-    this.getPlantsList();
-  }
-
-	// TODO: the difference btwn plant and harvest is so minor, 
-	// we should have just one API for both.  And it should
-	// include paging ...
-	getPlantsList() {
+	getVeggiesList(count) {
 		let account = window.walletConnection.account();
 		if (window.walletConnection.isSignedIn()) {
-			window.contract.get_owner_plants({ owner_id: window.accountId })
+			window.contract.get_owner_veggies_page({ owner_id: window.accountId, vtype: this.props.vtype, page_size: this.props.pageSize, page: this.props.page  })
 			.then(vlist => {
 				this.setState({vlist: vlist});
 			})
@@ -109,7 +107,10 @@ export class Veggies extends React.Component {
 			// TODO: handle err
 	}
 
-		
+	componentDidMount() {
+    this.getVeggiesList();
+  }
+
   render() {
 		let vegs = this.state.vlist.map((value, idx) => {
 				return (
