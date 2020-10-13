@@ -20,7 +20,7 @@ use rand_seeder::{Seeder};
 static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
 
 mod token_bank;
-use token_bank::{TokenBank, TokenId};
+use token_bank::{TokenBank, TokenSet, TokenId};
 
 mod constants;
 use constants::{VeggieType, VeggieSubType, vtypes, htypes, P_POOL};
@@ -31,7 +31,7 @@ use constants::{VeggieType, VeggieSubType, vtypes, htypes, P_POOL};
 /// (not necessarily the right way to do this in rust, i'm still learning ...)
 ///
 
-#[derive(PartialEq, Debug, Serialize, BorshDeserialize, BorshSerialize)]
+#[derive(PartialEq, Clone, Debug, Serialize, BorshDeserialize, BorshSerialize)]
 pub struct Veggie {
     pub id: TokenId,
     pub vtype: VeggieType,
@@ -42,7 +42,6 @@ pub struct Veggie {
 }
 
 impl Veggie {
-    //pub fn new(rng: &mut ChaCha8Rng, vtype: VeggieType, vsubtype:VeggieSubType) -> Self {
     pub fn new(id: TokenId, parent_vid: TokenId, vtype: VeggieType, vsubtype:VeggieSubType, dna: u64, meta_url: &String) -> Self {
 
         Self {
@@ -77,9 +76,10 @@ pub trait Veggies {
     fn get_owner_plants(&self, owner_id: AccountId) -> Vec<Veggie>;
 
     // TODO: better:
+    fn check_vtype(&self, vtype: VeggieType);
     fn get_veggie(&self, vid: TokenId) -> Veggie;
     fn count_owner_veggies(&self, owner_id: AccountId, vtype: u8) -> u64;
-    //fn get_owner_veggies_page(&self, owner_id: AccountId, vtype: u8, page_size: u16, page: u16) -> Vec<Veggie>;
+    fn get_owner_veggies_page(&self, owner_id: AccountId, vtype: u8, page_size: u16, page: u16) -> Vec<Veggie>;
 
     //fn get_plants(&self, owner_id: AccountId) -> Vec<Veggie>;
 
@@ -132,18 +132,22 @@ impl Veggies for PlantaryContract {
         return v;
     }
 
-    fn count_owner_veggies(&self, owner_id: AccountId, vtype: u8) -> u64 {
-        let tokens = self.token_bank.get_owner_tokens(&owner_id);
+    // panic if invalid veggie types are attempted.
+    fn check_vtype(&self, vtype: VeggieType){
+        if ! (vtype == 0 || vtype == vtypes::PLANT || vtype == vtypes::HARVEST) {
+            env::panic(b"Unknown veggie type.") 
+        }
+    }
 
+    fn count_owner_veggies(&self, owner_id: AccountId, vtype: VeggieType) -> u64 {
+        self.check_vtype(vtype);
+
+        let tokens = self.token_bank.get_owner_tokens(&owner_id);
             // type 0 means "count all veggies"
         if vtype == 0  { 
             return tokens.len();
         }
         
-        if ! (vtype == vtypes::PLANT || vtype == vtypes::HARVEST) {
-            env::panic(b"Unknown veggie type.") 
-        }
-
         let mut count = 0;
         for t in tokens.iter() {
             if self.veggies.get(&t).unwrap().vtype == vtype {
@@ -190,6 +194,34 @@ impl Veggies for PlantaryContract {
 
     fn get_plant(&self, vid: TokenId) -> Veggie {
         return self.get_veggie(vid);
+    }
+
+    fn get_owner_veggies_page(&self, owner_id: AccountId, vtype: VeggieType, page_size: u16, page: u16) -> Vec<Veggie> {
+        self.check_vtype(vtype);
+        // get all owner tokens
+        let tokens:TokenSet = self.token_bank.get_owner_tokens(&owner_id); // TokenSet == UnorderedSet<TokenId>
+        // convert to all owner plants
+        let mut owner_veggies: Vec<Veggie> = Vec::new();
+        for ot in tokens.iter() {
+            let ov = self.get_veggie(ot);
+            if (ov.vtype == vtypes::PLANT) || (vtype == 0) { owner_veggies.push(ov); }
+        }
+
+        // calculate page, return it
+        let count = owner_veggies.len();
+
+        // pagesize 0?  try to return all results 
+        if page_size == 0 {
+            return owner_veggies;
+        }
+
+        let startpoint: usize = page_size as usize * page as usize;
+        if startpoint > count { return Vec::new(); }
+
+        let mut endpoint : usize =  startpoint + page_size as usize;
+        if endpoint > count { endpoint = count; }
+
+        owner_veggies[startpoint .. endpoint].to_vec()
     }
 
     fn get_owner_plants(&self, owner_id: AccountId) -> Vec<Veggie> {
@@ -454,8 +486,52 @@ mod tests {
         fn count_owner_veggies_unknown(){
             testing_env!(get_context(robert(), 0));
             let contract = PlantaryContract::new(robert());
-            // count_owner_veggies should panic for unknown types
+            // count_owner_veggies() should panic for any unknown types
             assert_eq!(0, contract.count_owner_veggies(robert(), 23));
+        }
+
+        #[test]
+        fn get_owner_veggies_page(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = PlantaryContract::new(robert());
+
+            // mint 23 
+            for _n in 0..23 {
+                contract.mint_plant(ptypes::MONEY);
+            }
+
+            // get three pages of size 7
+            // check that they are all full
+            for p in 0..3 {
+                let tokens = contract.get_owner_veggies_page(robert(), vtypes::PLANT, 7,p);
+                assert_eq!(tokens.len(), 7, "bad token page size");
+            }
+
+            // get another page of size 7
+            // check that it is only 2 items long
+            let tokens = contract.get_owner_veggies_page(robert(), vtypes::PLANT, 7,3);
+            assert_eq!(tokens.len(), 2, "bad token end page size");
+
+            // get yet another page, should be empty.
+            let tokens = contract.get_owner_veggies_page(robert(), vtypes::PLANT, 7,100);
+            assert_eq!(tokens.len(), 0, "bad token blank page size");
+
+            // check that we can get the whole thing in one big slurp
+            let tokens = contract.get_owner_veggies_page(robert(), vtypes::PLANT, 23,0);
+            assert_eq!(tokens.len(), 23, "bad token total page size");
+            let tokens = contract.get_owner_veggies_page(robert(), vtypes::PLANT, 100,0);
+            assert_eq!(tokens.len(), 23, "bad token total page size");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Unknown veggie type."#
+        )]
+        fn get_owner_veggies_unknown(){
+            testing_env!(get_context(robert(), 0));
+            let contract = PlantaryContract::new(robert());
+            // count_owner_veggies() should panic for any unknown types
+            contract.get_owner_veggies_page(robert(), 23, 1, 1); // panic!
         }
 }
 
