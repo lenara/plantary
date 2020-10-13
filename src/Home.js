@@ -369,8 +369,8 @@ THIS SECTION COMING SOON!</p>
                 <div className="row">
 										{/* Footer Location*/}
                     <div className="col-lg-4 mb-5 mb-lg-0">
-                        <h4 className="mb-4">MY PLANTS</h4>
-												<Veggies vtype={vtypes.PLANT}/>
+                        <h4 className="mb-4"></h4>
+												<p className="pre-wrap lead mb-0"></p>
                     </div>
 										{/* Footer Social Icons*/}
                     <div className="col-lg-4 mb-5 mb-lg-0">
@@ -378,13 +378,56 @@ THIS SECTION COMING SOON!</p>
                     </div>
 										{/* Footer About Text*/}
                     <div className="col-lg-4">
-                        <h4 className="mb-4">MY HARVESTS</h4>
-												<Veggies vtype={vtypes.HARVEST}/>
+                        <h4 className="mb-4"></h4>
+												<p className="pre-wrap lead mb-0"></p>
                     </div>
                 </div>
             </div>
         </footer>
         </section>
+
+				<section className="page-section portfolio" id="myPlantPorfolio">
+            <div className="container">
+                {/* Section Heading */}
+                <div className="text-center">
+                    <h2 className="page-section-heading text-secondary mb-0 d-inline-block">MY PLANTS</h2>
+                </div>
+                {/* Icon Divider */}
+                <div className="divider-custom">
+                    <div className="divider-custom-line"></div>
+                    <div className="divider-custom-icon"><i className="fas fa-star"></i></div>
+                    <div className="divider-custom-line"></div>
+                </div>
+                {/* Portfolio Grid Items */}
+                <div className="row justify-content-center">
+                    {/* Portfolio Items */}
+										<Veggies vtype={vtypes.PLANT} renderStyle="portfolio"/>
+                </div>
+            </div>
+        </section>
+				<Veggies vtype={vtypes.PLANT} renderStyle="modal" />
+
+				<section className="page-section bg-primary text-white mb-0" id="myHarvestPorfolio">
+            <div className="container">
+              {/* Section Heading */}
+                <div className="text-center">
+                    <h2 className="page-section-heading d-inline-block text-white">MY HARVESTS</h2>
+                </div>
+                {/* Icon Divider */}
+                <div className="divider-custom divider-light">
+                    <div className="divider-custom-line"></div>
+                    <div className="divider-custom-icon"><i className="fas fa-star"></i></div>
+                    <div className="divider-custom-line"></div>
+                </div>
+                {/* Portfolio Grid Items */}
+                <div className="row justify-content-center">
+                    {/* Portfolio Items */}
+										<Veggies vtype={vtypes.HARVEST} renderStyle="portfolio"/>
+                </div>
+            </div>
+        </section>
+				<Veggies vtype={vtypes.HARVEST} renderStyle="modal" />
+
 				{/* Copyright Section*/}
         <section className="copyright py-4 text-center text-white">
             <div className="container"><small className="pre-wrap">Copyright © Plantary 2020 </small></div>

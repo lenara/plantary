@@ -1,6 +1,6 @@
 //import 'regenerator-runtime/runtime'
 import React from 'react'
-import { vtypes } from './utils'
+import { vtypes, ptypes, pnames } from './utils'
 //import { Home } from './Home'
 import getConfig from './config'
 
@@ -64,16 +64,76 @@ export class Veggie extends React.Component {
 		;
 	}
 
-	render(){
-		return (
-			<div className="veggie">
-				<div className="image"><img src={this.state.image}/></div>
-				<div className="name">{this.state.name}</div>
-				<div className="description">{this.state.description}</div>
-				<div className="artist">{this.state.artist}</div>
-			</div>
-		)
+	typeName(){
+		if (this.props.vtype == ptypes.PLANT) {
+			// TODO: i18n
+			return pnames.en[this.props.vsubtype];
+		} else 
+			return "HARVEST TYPE TODO";
 	}
+
+	render(){
+		let modalId = "v-" + this.props.vid + "-Modal";
+
+		switch (this.props.renderStyle) {
+			case "portfolio": 
+				return (
+					 <div className="col-md-6 col-lg-4 mb-5">
+							<div className="portfolio-item mx-auto" data-toggle="modal" data-target={"#" + modalId}>
+									<div className="portfolio-item-caption d-flex align-items-center justify-content-center h-100 w-100">
+											<div className="portfolio-item-caption-content text-center text-white"><i className="fas fa-plus fa-3x"></i></div>
+									</div><img className="img-fluid" src={this.state.image} alt={this.state.name}/>
+							</div>
+						</div>
+				);
+
+			case "modal":
+				return (
+					<div className="portfolio-modal modal fade" id={modalId} tabIndex="-1" role="dialog" aria-labelledby={modalId + "Label"} aria-hidden="true">
+            <div className="modal-dialog modal-xl" role="document">
+              <div className="modal-content">
+                <button className="close" type="button" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i className="fas fa-times"></i></span></button>
+								<div className="modal-body text-center">
+									<div className="container">
+										<div className="row justify-content-center">
+											<div className="col-lg-8">
+												{/* Portfolio Modal - Title */}
+												<h2 className="portfolio-modal-title text-secondary mb-0">{this.state.name}</h2>
+												{/* Icon Divider */}
+												<div className="divider-custom">
+													<div className="divider-custom-line"></div>
+													<div className="divider-custom-icon"><i className="fas fa-star"></i></div>
+													<div className="divider-custom-line"></div>
+												</div>
+												{/* Portfolio Modal - Image */}<img className="img-fluid rounded mb-5 h-30 w-50" src={this.state.image} alt={this.typeName()}/>
+												{/* Portfolio Modal - Text */}
+												<p className="mb-5">{this.state.description}
+													<br/> <br/><em>Artist: {this.state.artist}</em>
+													<br/> <em>Type: {this.typeName()}</em>
+													<br/> <br/><em>Harvest fee: TODO Ⓝ</em>
+												</p>
+												<button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Harvest</button>
+											</div>
+										</div>
+									</div>
+								</div>
+							</div>
+						</div>
+					</div>
+				);
+
+			default: 
+				return (
+					<div className="veggie">
+						<div className="image"><img src={this.state.image}/></div>
+						<div className="name">{this.state.name}</div>
+						<div className="description">{this.state.description}</div>
+						<div className="artist">{this.state.artist}</div>
+					</div>
+				);
+		}
+	}
+
 }
 // define Veggies component: holds a list of veggie data,
 // instantiates individual Veggie components
@@ -86,7 +146,7 @@ export class Veggies extends React.Component {
 	}
 
 	constructor(props) {
-    super(props);
+		super(props);
 		this.state = {
 			// the list of veggies we're loading:
 			//vlist: props.vlist || new Array(),
@@ -94,7 +154,7 @@ export class Veggies extends React.Component {
 		};
 		// necessary?
 		this.getVeggiesList= this.getVeggiesList.bind(this);
-  }
+	}
 
 	getVeggiesList(count) {
 		let account = window.walletConnection.account();
@@ -108,31 +168,31 @@ export class Veggies extends React.Component {
 	}
 
 	componentDidMount() {
-    this.getVeggiesList();
-  }
+		this.getVeggiesList();
+	}
 
-  render() {
+	render() {
 		let vegs = this.state.vlist.map((value, idx) => {
 				return (
-					<li key={idx}>
 						<Veggie 
+							key={idx}
 							vid={value.vid}
 							vtype={value.vtype}
 							vsubtype={value.vsubtype}
 							parent={value.parent_id}
 							dna={value.dna}
 							meta_url={value.meta_url}
+							renderStyle={this.props.renderStyle}
 						/>
-					</li>
 				)
 		});
 
 		return (
-			<ul className="veggies">
+			<>
 				{vegs}
-			</ul>
+			</>
 		)
-  }
+	}
 
 }
 
