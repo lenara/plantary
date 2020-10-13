@@ -1,7 +1,7 @@
 import React from 'react'
 import { connect, Contract, keyStores, WalletConnection } from 'near-api-js'
-import { login, logout, mintPlant, ptypes } from './utils'
-import { Veggies } from './Plants'
+import { login, logout, mintPlant, vtypes, ptypes } from './utils'
+import { Veggies } from './Veggies'
 import getConfig from './config'
 
 const nearConfig = getConfig(process.env.NODE_ENV || 'development')
@@ -370,7 +370,7 @@ THIS SECTION COMING SOON!</p>
 										{/* Footer Location*/}
                     <div className="col-lg-4 mb-5 mb-lg-0">
                         <h4 className="mb-4">MY PLANTS</h4>
-												<Veggies />
+												<Veggies vtype={vtypes.PLANT}/>
                     </div>
 										{/* Footer Social Icons*/}
                     <div className="col-lg-4 mb-5 mb-lg-0">
@@ -379,7 +379,7 @@ THIS SECTION COMING SOON!</p>
 										{/* Footer About Text*/}
                     <div className="col-lg-4">
                         <h4 className="mb-4">MY HARVESTS</h4>
-                        <p className="pre-wrap lead mb-0">get_harvest</p>
+												<Veggies vtype={vtypes.HARVEST}/>
                     </div>
                 </div>
             </div>
