@@ -2,7 +2,6 @@
 import React from 'react'
 //import { login, logout, mintPlant } from './utils'
 //import { Home } from './Home'
-import './global.css'
 import getConfig from './config'
 
 const nearConfig = getConfig(process.env.NODE_ENV || 'development')

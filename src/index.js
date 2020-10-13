@@ -7,7 +7,7 @@ window.nearInitPromise = initContract()
   .then(() => {
     ReactDOM.render(
       <App />,
-      document.querySelector('#root')
+      document.querySelector('body')
     )
   })
   .catch(console.error)
