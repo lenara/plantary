@@ -17,6 +17,18 @@ export const ptypes = {
 	SEED: 6
 }
 
+export const pnames = {
+	"en": [
+		'',
+		'Oracle Plant',
+		'Portrait Plant',
+		'Money Plant',
+		'Compliment Plant',
+		'Insult Plant',
+		'Seed Plant'
+	]
+}
+
 // Initialize contract & set global variables
 export async function initContract() {
   // Initialize connection to the NEAR testnet
