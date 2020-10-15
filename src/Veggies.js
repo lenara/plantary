@@ -1,6 +1,6 @@
 //import 'regenerator-runtime/runtime'
 import React from 'react'
-import { vtypes, ptypes, pnames } from './utils'
+import { vtypes, ptypes, pnames, harvestPlant } from './utils'
 //import { Home } from './Home'
 import getConfig from './config'
 
@@ -9,9 +9,22 @@ const nearConfig = getConfig(process.env.NODE_ENV || 'development')
 // define Veggie component: holds & renders a single veggie;
 // loads meta_URL and updates.
 
+function	HarvestPlantButton(props){
+	function handleClick(e) {
+		e.preventDefault();
+		if (window.walletConnection.isSignedIn()) {
+			harvestPlant(props.vid, props.price);
+		}
+	}
+
+	return (
+		<button className="btn btn-primary" href="#" onClick={handleClick} data-dismiss="modal"><i className="fas fa-seedling"></i>Harvest Plant</button>
+	)
+}
+
 export class Veggie extends React.Component {
 	constructor(props) {
-    super(props);
+		super(props);
 		this.state = {};
 
 		for (var p in [
@@ -31,11 +44,11 @@ export class Veggie extends React.Component {
 			this.state[p] = props[p];
 		}
 		this.getVeggieMeta = this.getVeggieMeta.bind(this);
-  }
+	}
 
 	componentDidMount() {
-    this.getVeggieMeta();
-  }
+		this.getVeggieMeta();
+	}
 
 	// The NEAR blockchain stores ownership and a bit more, but some
 	// veggie metadata lives elsewhere.  metaURL points to a hunk of
@@ -65,7 +78,7 @@ export class Veggie extends React.Component {
 	}
 
 	typeName(){
-		if (this.props.vtype == ptypes.PLANT) {
+		if (this.props.vtype == vtypes.PLANT) {
 			// TODO: i18n
 			return pnames.en[this.props.vsubtype];
 		} else 
@@ -74,6 +87,18 @@ export class Veggie extends React.Component {
 
 	render(){
 		let modalId = "v-" + this.props.vid + "-Modal";
+		let harvestPrice = (this.props.vtype == vtypes.PLANT) ? 5 : -1; // TODO: look up
+		let harvestJsx = harvestPrice ? (
+			<> <br/> <br/><em>Harvest fee: {harvestPrice} Ⓝ</em> </>
+		) : (
+			<></>
+		);
+		let harvestButton = harvestPrice ? (
+			<HarvestPlantButton price={harvestPrice} vid={this.props.vid} />
+		) : (
+			<></>
+		);
+
 
 		switch (this.props.renderStyle) {
 			case "portfolio": 
@@ -90,9 +115,9 @@ export class Veggie extends React.Component {
 			case "modal":
 				return (
 					<div className="portfolio-modal modal fade" id={modalId} tabIndex="-1" role="dialog" aria-labelledby={modalId + "Label"} aria-hidden="true">
-            <div className="modal-dialog modal-xl" role="document">
-              <div className="modal-content">
-                <button className="close" type="button" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i className="fas fa-times"></i></span></button>
+						<div className="modal-dialog modal-xl" role="document">
+							<div className="modal-content">
+								<button className="close" type="button" data-dismiss="modal" aria-label="Close"><span aria-hidden="true"><i className="fas fa-times"></i></span></button>
 								<div className="modal-body text-center">
 									<div className="container">
 										<div className="row justify-content-center">
@@ -110,9 +135,9 @@ export class Veggie extends React.Component {
 												<p className="mb-5">{this.state.description}
 													<br/> <br/><em>Artist: {this.state.artist}</em>
 													<br/> <em>Type: {this.typeName()}</em>
-													<br/> <br/><em>Harvest fee: TODO Ⓝ</em>
+													{harvestJsx}
 												</p>
-												<button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Harvest</button>
+												{harvestButton}
 											</div>
 										</div>
 									</div>
