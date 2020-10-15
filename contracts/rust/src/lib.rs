@@ -7,17 +7,18 @@
 /// Implements blockchain ledger for plants and their fruit
 ///
 
-use borsh::{BorshDeserialize, BorshSerialize};
-use serde::{Serialize};
-use near_sdk::collections::UnorderedMap;
 use near_sdk::{env, near_bindgen, AccountId};
+use near_sdk::collections::UnorderedMap;
+
+use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
+use near_sdk::serde::Serialize;
 
 use rand::prelude::*;
 use rand_chacha::ChaCha8Rng;
 use rand_seeder::{Seeder};
 
 #[global_allocator]
-static ALLOC: wee_alloc::WeeAlloc = wee_alloc::WeeAlloc::INIT;
+static ALLOC: near_sdk::wee_alloc::WeeAlloc<'_> = near_sdk::wee_alloc::WeeAlloc::INIT;
 
 mod token_bank;
 use token_bank::{TokenBank, TokenSet, TokenId};
@@ -385,7 +386,7 @@ mod tests {
         }
 
         #[test]
-        fn get_owner_veggies_page(){
+        fn get_owner_veggies_page_1(){
             testing_env!(get_context(robert(), 0));
             let mut contract = PlantaryContract::new(robert());
 
@@ -427,6 +428,23 @@ mod tests {
             let tokens = contract.get_owner_veggies_page(robert(), vtypes::PLANT, 100,0);
             assert_eq!(tokens.len(), 23, "bad plant total page size");
 
+        }
+
+        #[test]
+        fn get_owner_veggies_page_2(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = PlantaryContract::new(robert());
+
+            // mint 23  plants
+            for _n in 0..22 {
+                contract.mint_plant(ptypes::MONEY);
+            }
+            let _p23 = contract.mint_plant(ptypes::ORACLE);
+
+            // mint 13 harvests
+            for _o in 0..13 {
+                contract.harvest_plant(_p23.vid);
+            }
 
             // test harvests:
             for p in 0..2 {
