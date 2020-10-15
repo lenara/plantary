@@ -8,8 +8,7 @@
 ///
 
 use near_sdk::{env, near_bindgen, AccountId};
-use std::collections::HashMap;
-//use near_sdk::collections::UnorderedMap;
+use near_sdk::collections::UnorderedMap;
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde::Serialize;
@@ -292,7 +291,7 @@ impl PlantaryContract {
         assert_eq!(vid, v.vid, "vid mismatch!");
 
         // record in the static list of veggies
-        self.veggies.insert(vid, v.clone()); // vid has Copy trait; v does not.
+        self.veggies.insert(&vid, &v); // vid has Copy trait; v does not.
         // record ownership in the nft structure
         self.token_bank.mint_token(env::predecessor_account_id(), vid);
 
@@ -309,7 +308,7 @@ pub struct PlantaryContract {
     // owner of the contract:
     pub owner_id: AccountId,
     // metadata storage
-    pub veggies: HashMap<TokenId, Veggie>,
+    pub veggies: UnorderedMap<TokenId, Veggie>,
 }
 
 impl Default for PlantaryContract {
@@ -328,8 +327,7 @@ impl PlantaryContract {
         Self {
             token_bank: TokenBank::new(),
             owner_id,
-            //veggies: UnorderedMap::new(b"veggies".to_vec()),
-            veggies: HashMap::new(),
+            veggies: UnorderedMap::new(b"veggies".to_vec()),
         }
     }
 
