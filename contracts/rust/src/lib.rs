@@ -8,7 +8,8 @@
 ///
 
 use near_sdk::{env, near_bindgen, AccountId};
-use near_sdk::collections::UnorderedMap;
+use std::collections::HashMap;
+//use near_sdk::collections::UnorderedMap;
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 use near_sdk::serde::Serialize;
@@ -24,7 +25,7 @@ mod token_bank;
 use token_bank::{TokenBank, TokenSet, TokenId};
 
 mod constants;
-use constants::{VeggieType, VeggieSubType, vtypes, htypes, P_POOL};
+use constants::{VeggieType, VeggieSubType, vtypes, P_POOL, H_POOL};
 
 ///
 /// the veggie section
@@ -57,18 +58,59 @@ impl Veggie {
     }
 }
 
+// this is the external, JSON-compatible version for method calls.  (u64s are strings.)
+
+pub type TokenJSON = String;
+
+#[derive(PartialEq, Clone, Debug, Serialize, BorshDeserialize, BorshSerialize)]
+pub struct VeggieJSON {
+    pub vid: TokenJSON,
+    pub vtype: VeggieType,
+    pub vsubtype: VeggieSubType,
+    pub parent: TokenJSON,
+    pub dna: String,
+    pub meta_url: String,
+}
+
+impl From<Veggie> for VeggieJSON {
+    fn from(v: Veggie) -> Self {
+        Self {
+            vid: v.vid.to_string(),
+            vtype: v.vtype,
+            vsubtype: v.vsubtype,
+            parent: v.parent.to_string(),
+            dna: v.dna.to_string(),
+            meta_url: v.meta_url
+        }
+    }
+}
+
+// I thought Rust would give me this for free ...
+impl From<VeggieJSON> for Veggie {
+    fn from(v: VeggieJSON) -> Self {
+        Self {
+            vid: v.vid.parse::<TokenId>().unwrap(),
+            vtype: v.vtype,
+            vsubtype: v.vsubtype,
+            parent: v.parent.parse::<TokenId>().unwrap(),
+            dna: v.dna.parse::<u64>().unwrap(),
+            meta_url: v.meta_url,
+        }
+    }
+}
+
 pub trait Veggies {
-    fn get_veggie(&self, vid: TokenId) -> Veggie;
+    fn get_veggie_json(&self, vid_json: TokenJSON) -> VeggieJSON;
     fn count_owner_veggies(&self, owner_id: AccountId, vtype: VeggieType) -> u64;
-    fn get_owner_veggies_page(&self, owner_id: AccountId, vtype: VeggieType, page_size: u16, page: u16) -> Vec<Veggie>;
+    fn get_owner_veggies_page_json(&self, owner_id: AccountId, vtype: VeggieType, page_size: u16, page: u16) -> Vec<VeggieJSON>;
 
-    fn mint_plant(&mut self, 
+    fn mint_plant_json(&mut self, 
                     vsubtype: VeggieSubType,
-                    )->Veggie;
+                    )->VeggieJSON;
 
-    fn delete_veggie(&mut self, vid: TokenId);
+    fn delete_veggie_json(&mut self, vid_json: TokenJSON);
 
-    fn harvest_plant(&mut self, parent_id: TokenId) -> Veggie;
+    fn harvest_plant_json(&mut self, parent_id: TokenJSON) -> VeggieJSON;
 }
 
 // public veggies implementation
@@ -95,6 +137,34 @@ impl Veggies for PlantaryContract {
         count
     }
 
+    fn get_veggie_json(&self, vid: TokenJSON) -> VeggieJSON {
+        self.get_veggie(vid.parse::<TokenId>().unwrap()).into()
+    }
+
+    fn delete_veggie_json(&mut self, vid: TokenJSON){
+        self.delete_veggie(vid.parse::<TokenId>().unwrap()).into()
+    }
+
+    #[payable]
+    fn harvest_plant_json(&mut self, parent_id: TokenJSON) -> VeggieJSON {
+        self.harvest_plant(parent_id.parse::<TokenId>().unwrap()).into()
+    }
+
+    fn get_owner_veggies_page_json(&self, owner_id: AccountId, vtype: VeggieType, page_size: u16, page: u16) -> Vec<VeggieJSON> {
+        self.get_owner_veggies_page(owner_id, vtype, page_size, page).iter().map(|v| VeggieJSON::from(v.clone())).collect()
+    }
+
+    #[payable]
+    fn mint_plant_json(&mut self, vsubtype: VeggieSubType) -> VeggieJSON {
+        self.mint_plant(vsubtype).into()
+    }
+
+}
+
+////////////////////////
+// private methods used by Veggies
+//
+impl PlantaryContract {
     fn get_veggie(&self, vid: TokenId) -> Veggie {
         // TODO: check perms?
         let veggie = match self.veggies.get(&vid) {
@@ -102,10 +172,10 @@ impl Veggies for PlantaryContract {
                 c
             },
             None => {
-                env::panic(b"Veggie does not exist.") // TODO: find pattern for throwing exception
+                env::panic(b"Veggie does not exist.") 
             }
         };
-        return veggie;
+        return veggie.clone();
     }
 
     fn delete_veggie(&mut self, vid: TokenId) {
@@ -118,7 +188,6 @@ impl Veggies for PlantaryContract {
         self.token_bank.token_to_account.remove(&vid);
     }
 
-    #[payable]
     fn mint_plant(&mut self,
                     vsubtype: VeggieSubType,
                     ) -> Veggie {
@@ -127,6 +196,24 @@ impl Veggies for PlantaryContract {
 
         // TODO: confirm that we were paid the right amount!
         return self.create_veggie(vtypes::PLANT, vsubtype, parent_vid);
+    }
+
+    // harvest_plant() here, a plant veggie gives birth to a harvest veggie
+    // (harvest in this case is a verb.)
+    fn harvest_plant(&mut self, parent_id: TokenId) -> Veggie {
+        // Assert: user owns this plant
+        // Assert: this type of plant can even have a harvest
+        // Assert: correct money was paid
+        
+        let parent = self.get_veggie(parent_id);
+
+        // Assert: parent is a plant
+        if parent.vtype != vtypes::PLANT {
+            env::panic(b"non-plant harvest");
+        }
+        // for now, the harvest subtype is the same subtype as the parent plant
+        let h = self.create_veggie(vtypes::HARVEST, parent.vsubtype, parent.vid);
+        return h;
     }
 
     fn get_owner_veggies_page(&self, owner_id: AccountId, vtype: VeggieType, page_size: u16, page: u16) -> Vec<Veggie> {
@@ -157,30 +244,6 @@ impl Veggies for PlantaryContract {
         owner_veggies[startpoint .. endpoint].to_vec()
     }
 
-    // harvest_plant() here, a plant veggie gives birth to a harvest veggie
-    // (harvest in this case is a verb.)
-    #[payable]
-    fn harvest_plant(&mut self, parent_id: TokenId) -> Veggie {
-        // Assert: user owns this plant
-        // Assert: this type of plant can even have a harvest
-        // Assert: correct money was paid
-        
-        let parent = self.get_veggie(parent_id);
-
-        // Assert: parent is a plant
-        if parent.vtype != vtypes::PLANT {
-            env::panic(b"non-plant harvest");
-        }
-        // TODO: for every plant type there is a set of allowed harvest types, or none allowed)
-        let h = self.create_veggie(vtypes::HARVEST, htypes::GENERIC, parent.vid);
-        return h;
-    }
-}
-
-////////////////////////
-// private methods used by Veggies
-//
-impl PlantaryContract {
     // panic if invalid veggie types are attempted.
     fn check_vtype(&self, vtype: VeggieType){
         if ! (vtype == 0 || vtype == vtypes::PLANT || vtype == vtypes::HARVEST) {
@@ -215,23 +278,25 @@ impl PlantaryContract {
 
         // pick a meta URL at random from the plant pool for the given subtype
         let meta_url: String;
+        let subtypes;
         if vtype == vtypes::PLANT {
-            let subtypes = &P_POOL[&vsubtype];
-            meta_url = subtypes[rng.gen_range(0, subtypes.len())].to_string();
+            subtypes = &P_POOL[&vsubtype];
         } else {
-            // TODO
-            meta_url = "TBD".to_string();
+            subtypes = &H_POOL[&vsubtype];
         }
+        meta_url = subtypes[rng.gen_range(0, subtypes.len())].to_string();
 
         let dna: u64 = rng.gen();
 
         let v = Veggie::new(vid, parent_vid, vtype, vsubtype, dna, &meta_url);
+        assert_eq!(vid, v.vid, "vid mismatch!");
 
         // record in the static list of veggies
-        self.veggies.insert(&v.vid, &v);
+        self.veggies.insert(vid, v.clone()); // vid has Copy trait; v does not.
         // record ownership in the nft structure
-        self.token_bank.mint_token(env::predecessor_account_id(), v.vid);
-        return v;
+        self.token_bank.mint_token(env::predecessor_account_id(), vid);
+
+        v
     }
 }
 
@@ -244,7 +309,7 @@ pub struct PlantaryContract {
     // owner of the contract:
     pub owner_id: AccountId,
     // metadata storage
-    pub veggies: UnorderedMap<TokenId, Veggie>,
+    pub veggies: HashMap<TokenId, Veggie>,
 }
 
 impl Default for PlantaryContract {
@@ -263,12 +328,19 @@ impl PlantaryContract {
         Self {
             token_bank: TokenBank::new(),
             owner_id,
-            veggies: UnorderedMap::new(b"veggies".to_vec()),
+            //veggies: UnorderedMap::new(b"veggies".to_vec()),
+            veggies: HashMap::new(),
         }
     }
 
     pub fn get_owner_tokens(&self, owner_id: &AccountId) -> Vec<TokenId> {
         self.token_bank.get_owner_tokens(&owner_id).to_vec()
+    }
+
+    // debug
+    pub fn get_veggie_keys(&self) -> Vec<String> {
+        //self.veggies.keys().cloned().collect()
+        self.veggies.keys().map(|i| i.to_string()).collect()
     }
 
 }
@@ -342,14 +414,37 @@ mod tests {
             let mut contract = PlantaryContract::new(robert());
 
                 // create
-            let p = contract.mint_plant(ptypes::MONEY);
+            let p = contract.mint_plant(ptypes::PORTRAIT);
             let h = contract.harvest_plant(p.vid);
                 // inspect
             assert_eq!(p.vid, h.parent, "parentage suspect");
+            assert_eq!(p.vsubtype, h.vsubtype, "mismatched subtype");
         }
 
         // TODO: test that we can't harvest a plant we don't own.
 
+        #[test]
+        #[should_panic(
+            expected = r#"Veggie does not exist."#
+        )]
+        fn create_get_delete_veggie_json(){
+            testing_env!(get_context(robert(), 0));
+            let mut contract = PlantaryContract::new(robert());
+                // create
+            let v = contract.create_veggie(vtypes::PLANT, ptypes::MONEY, 0);
+                // inspect?
+            assert_eq!(v.vtype, vtypes::PLANT, "vtype not saved");
+            assert_eq!(v.vsubtype, ptypes::MONEY, "vsubtype not found.");
+                // find?
+            let vid_json = v.vid.to_string();
+                // confirm
+            let _foundv: Veggie = contract.get_veggie_json(vid_json.clone()).into(); // should not panic
+            assert_eq!(v, _foundv, "veggie did not fetch right");
+                // delete
+            contract.delete_veggie_json(vid_json.clone()); 
+                // confirm deleted
+            let _nov = contract.get_veggie_json(vid_json); // should panic
+        }
 
         #[test]
         fn count_owner_veggies(){
@@ -357,12 +452,12 @@ mod tests {
             let mut contract = PlantaryContract::new(robert());
 
             // mint some plants
-            let _p1 = contract.mint_plant(ptypes::MONEY);
+            let _p1 = contract.mint_plant(ptypes::MONEY); // cant' mint!
             let _p2 = contract.mint_plant(ptypes::ORACLE);
             let _p3 = contract.mint_plant(ptypes::PORTRAIT);
             // harvest some fruit
-            let _h1 = contract.harvest_plant(_p1.vid);
-            let _h2 = contract.harvest_plant(_p1.vid);
+            let _h1 = contract.harvest_plant(_p2.vid);
+            let _h2 = contract.harvest_plant(_p3.vid);
 
             // count_owner_veggies should return 5 for type 0, which is "all"
             assert_eq!(5, contract.count_owner_veggies(robert(), 0));
@@ -477,7 +572,7 @@ mod tests {
             testing_env!(get_context(robert(), 0));
             let contract = PlantaryContract::new(robert());
             // count_owner_veggies() should panic for any unknown types
-            contract.get_owner_veggies_page(robert(), 23, 1, 1); // panic!
+            let _foo = contract.get_owner_veggies_page(robert(), 23, 1, 1); // panic!
         }
 }
 

@@ -184,7 +184,7 @@ export class Veggies extends React.Component {
 	getVeggiesList(count) {
 		let account = window.walletConnection.account();
 		if (window.walletConnection.isSignedIn()) {
-			window.contract.get_owner_veggies_page({ owner_id: window.accountId, vtype: this.props.vtype, page_size: this.props.pageSize, page: this.props.page  })
+			window.contract.get_owner_veggies_page_json({ owner_id: window.accountId, vtype: this.props.vtype, page_size: this.props.pageSize, page: this.props.page  })
 			.then(vlist => {
 				this.setState({vlist: vlist});
 			})
