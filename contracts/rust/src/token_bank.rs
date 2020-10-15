@@ -3,10 +3,12 @@
 /// adapted from https://github.com/near-examples/NFT by mykle
 /// Implements blockchain ledger for plants and their fruit
 
-use borsh::{BorshDeserialize, BorshSerialize};
+//use borsh::{BorshDeserialize, BorshSerialize};
+
 use near_sdk::collections::UnorderedMap;
 use near_sdk::collections::UnorderedSet;
 use near_sdk::{env, AccountId};
+use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
 
 /// This trait provides the baseline of functions as described at:
 /// https://github.com/nearprotocol/NEPs/blob/nep-4/specs/Standards/Tokens/NonFungibleToken.md
