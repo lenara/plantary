@@ -13,6 +13,13 @@ function AccountOrWallet() {
 		return "CONNECT WALLET";
 }
 
+function MineOrWallet() {
+	if (window.walletConnection.isSignedIn()) 
+		return "MY PLANTARY";
+	else
+		return "CONNECT WALLET";
+}
+
 function WalletLink() {
   function handleClick(e) {
     e.preventDefault();
@@ -59,7 +66,7 @@ export function Home() {
                         </li>
                         <li className="nav-item mx-0 mx-lg-1"><a className="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#contact">ABOUT</a>
                         </li>
-												<li className="nav-item mx-0 mx-lg-1"><a className="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#connect"><AccountOrWallet /></a>
+												<li className="nav-item mx-0 mx-lg-1"><a className="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#connect"><MineOrWallet /></a>
                         </li>
                     </ul>
                 </div>
