@@ -98,6 +98,6 @@ export function harvestPlant(parent_id, price) {
 	let amount = utils.format.parseNearAmount(price.toString());
 	let account = window.walletConnection.account();
 	account.functionCall(nearConfig.contractName, 'harvest_plant_json', {
-		parent_id: parent_id.toString()
+		parent_id_json: parent_id.toString()
 	}, 0, amount);
 }

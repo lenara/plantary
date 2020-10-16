@@ -24,7 +24,7 @@ mod token_bank;
 use token_bank::{TokenBank, TokenSet, TokenId};
 
 mod constants;
-use constants::{VeggieType, VeggieSubType, vtypes, P_POOL, H_POOL, P_PRICES};
+use constants::{VeggieType, VeggieSubType, vtypes, P_POOL, H_POOL, P_PRICES, H_PRICES};
 
 ///
 /// the veggie section
@@ -145,9 +145,13 @@ impl Veggies for PlantaryContract {
     }
 
     #[payable]
-    fn harvest_plant_json(&mut self, parent_id: TokenJSON) -> VeggieJSON {
-        // TODO: confirm that we were paid the right amount!
-        self.harvest_plant(parent_id.parse::<TokenId>().unwrap()).into()
+    fn harvest_plant_json(&mut self, parent_id_json: TokenJSON) -> VeggieJSON {
+        // confirm that we were paid the right amount:
+        let parent_id = parent_id_json.parse::<TokenId>().unwrap();
+        let parent = self.get_veggie(parent_id);
+        self.paid_up(H_PRICES[parent.vsubtype as usize]);
+
+        self.harvest_plant(parent_id).into()
     }
 
     fn get_owner_veggies_page_json(&self, owner_id: AccountId, vtype: VeggieType, page_size: u16, page: u16) -> Vec<VeggieJSON> {
