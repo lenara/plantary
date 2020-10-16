@@ -407,7 +407,7 @@ THIS SECTION COMING SOON!</p>
         </section>
 				<Veggies vtype={vtypes.PLANT} renderStyle="modal" />
 
-				<section className="page-section bg-primary text-white mb-0" id="myHarvestPorfolio">
+				<section className="page-section portfolio bg-primary text-white mb-0" id="myHarvestPorfolio">
             <div className="container">
               {/* Section Heading */}
                 <div className="text-center">
