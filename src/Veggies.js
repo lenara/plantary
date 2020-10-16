@@ -1,6 +1,6 @@
 //import 'regenerator-runtime/runtime'
 import React from 'react'
-import { vtypes, ptypes, pnames, harvestPlant } from './utils'
+import { vtypes, ptypes, pnames, hprices, harvestPlant } from './utils'
 //import { Home } from './Home'
 import getConfig from './config'
 
@@ -82,22 +82,25 @@ export class Veggie extends React.Component {
 			// TODO: i18n
 			return pnames.en[this.props.vsubtype];
 		} else 
-			return "HARVEST TYPE TODO";
+			return ""; // nothing here for harvests
 	}
 
 	render(){
 		let modalId = "v-" + this.props.vid + "-Modal";
-		let harvestPrice = (this.props.vtype == vtypes.PLANT) ? 5 : -1; // TODO: look up
-		let harvestJsx = harvestPrice ? (
-			<> <br/> <br/><em>Harvest fee: {harvestPrice} Ⓝ</em> </>
-		) : (
-			<></>
-		);
-		let harvestButton = harvestPrice ? (
-			<HarvestPlantButton price={harvestPrice} vid={this.props.vid} />
-		) : (
-			<></>
-		);
+		let harvestPrice = (this.props.vtype == vtypes.PLANT) ? hprices[this.props.vsubtype] : -1;
+		let harvestJsx, harvestButton;
+		if (harvestPrice >= 0) { 
+			harvestJsx = (
+				<> <br/> <br/><em>Harvest fee: {harvestPrice} Ⓝ</em> </>
+			);
+			harvestButton = (
+				<HarvestPlantButton price={harvestPrice} vid={this.props.vid} />
+			);
+		} else {
+			harvestJsx = harvestButton = (
+				<></>
+			);
+		}
 
 
 		switch (this.props.renderStyle) {

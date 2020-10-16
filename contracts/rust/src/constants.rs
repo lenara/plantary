@@ -26,6 +26,16 @@ pub mod htypes {
     use crate::constants::HarvestType;
     pub const GENERIC: HarvestType= 0;
 }
+// prices to harvest
+pub mod hprices [
+    =1, // generic
+    5, // oracle
+    5, // portrait
+    -1, // money (can't harvest)
+    5,
+    5,
+    50
+]
 
 // nested array of meta_urls for possible plants!
 // array index == PlantType (an int)

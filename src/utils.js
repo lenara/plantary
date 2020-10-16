@@ -29,6 +29,16 @@ export const pnames = {
 	]
 }
 
+export const hprices = [
+	-1,
+	5,
+	5,
+	-1,
+	5,
+	5,
+	50
+]
+
 // Initialize contract & set global variables
 export async function initContract() {
   // Initialize connection to the NEAR testnet
