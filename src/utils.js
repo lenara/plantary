@@ -29,6 +29,16 @@ export const pnames = {
 	]
 }
 
+export const pprices = [
+	-1,
+	10,
+	20,
+	30,
+	-1,
+	-1,
+	-1,
+]
+
 export const hprices = [
 	-1,
 	5,

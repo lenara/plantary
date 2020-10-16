@@ -1,9 +1,12 @@
 #![allow(unused)]
 
+use near_sdk::{Balance};
+
 pub type VeggieType = u8;
 pub type VeggieSubType = u8;
 pub type PlantType = VeggieSubType;
 pub type HarvestType = VeggieSubType;
+
 
 pub mod vtypes {
     use crate::constants::VeggieType;
@@ -28,11 +31,22 @@ pub mod htypes {
 }
 
 // prices to harvest
-pub const HPRICES: [i32; 7] = [
-    -1, // generic
+pub const P_PRICES: [Balance; 7] = [
+    0, // generic
+    10, // oracle
+    20, // portrait
+    30, // money 
+    0,
+    0,
+    0
+];
+
+// prices to harvest
+pub const H_PRICES: [Balance; 7] = [
+    0, // generic
     5, // oracle
     5, // portrait
-    -1, // money (can't harvest)
+    0, // money (can't harvest)
     5,
     5,
     50
