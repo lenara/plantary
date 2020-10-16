@@ -254,7 +254,7 @@ export function Home() {
 																		{/* Portfolio Modal - Image*/}<img className="img-fluid rounded mb-5" src={require("./assets/img/portfolio/plant4b.png")} alt="Compliment Plant"/>
 																		{/* Portfolio Modal - Text*/}
                                     <p className="mb-5">Available soon.</p>
-                                    <button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>
+																		{/*<button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>*/}
                                 </div>
                             </div>
                         </div>
@@ -281,7 +281,7 @@ export function Home() {
 																		{/* Portfolio Modal - Image*/}<img className="img-fluid rounded mb-5" src={require("./assets/img/portfolio/plant6.png")} alt="Insult Plant"/>
 																		{/* Portfolio Modal - Text*/}
                                     <p className="mb-5">Available soon.</p>
-                                    <button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>
+																		{/*<button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>*/}
                                 </div>
                             </div>
                         </div>
@@ -308,7 +308,7 @@ export function Home() {
 																		{/* Portfolio Modal - Image*/}<img className="img-fluid rounded mb-5" src={require("./assets/img/portfolio/plant5.png")} alt="Seed Plant"/>
 																		{/* Portfolio Modal - Text*/}
                                     <p className="mb-5">Available soon.</p>
-                                    <button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>
+																		{/*<button className="btn btn-primary" href="#" data-dismiss="modal"><i className="fas fa-seedling"></i> Mint Plant</button>*/}
                                 </div>
                             </div>
                         </div>

@@ -69,7 +69,7 @@ export class Veggie extends React.Component {
 					// decompose this "attribues" array of "trait_type"->"value" pairs to dig out the "artist" trait.
 					if (obj.attributes && obj.attributes.length) { 
 						let artistTrait = obj.attributes.find(t => t.trait_type == "artist");
-						picked.artist = artistTrait ? ( "Artist: " + artistTrait.value ): NULL;
+						picked.artist = artistTrait ? artistTrait.value : NULL;
 					}
 
 					this.setState(picked);
@@ -79,8 +79,7 @@ export class Veggie extends React.Component {
 
 	typeName(){
 		if (this.props.vtype == vtypes.PLANT) {
-			// TODO: i18n
-			return pnames.en[this.props.vsubtype];
+			return pnames.en[this.props.vsubtype]; // TODO: i18n
 		} else 
 			return ""; // nothing here for harvests
 	}
@@ -137,7 +136,10 @@ export class Veggie extends React.Component {
 												{/* Portfolio Modal - Text */}
 												<p className="mb-5">{this.state.description}
 													<br/> <br/><em>Artist: {this.state.artist}</em>
-													<br/> <em>Type: {this.typeName()}</em>
+													{ this.typeName().length
+															? <> <br/> <em>Type: {this.typeName()}</em> </>
+															: <></>
+													}
 													{harvestJsx}
 												</p>
 												{harvestButton}
