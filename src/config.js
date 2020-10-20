@@ -1,10 +1,11 @@
-const CONTRACT_NAME = process.env.CONTRACT_NAME ||'plantary'
+const CONTRACT_NAME = process.env.CONTRACT_NAME ||'plantary.mykletest.testnet'
 
 function getConfig(env) {
   switch (env) {
 
   case 'production':
   case 'mainnet':
+				/*
     return {
       networkId: 'mainnet',
       nodeUrl: 'https://rpc.mainnet.near.org',
@@ -12,6 +13,16 @@ function getConfig(env) {
       walletUrl: 'https://wallet.near.org',
       helperUrl: 'https://helper.mainnet.near.org',
       explorerUrl: 'https://explorer.mainnet.near.org',
+    }
+			*/
+			// for now we're "deploying" to a testnet account
+    return {
+      networkId: 'testnet',
+      nodeUrl: 'https://rpc.testnet.near.org',
+      contractName: CONTRACT_NAME,
+      walletUrl: 'https://wallet.testnet.near.org',
+      helperUrl: 'https://helper.testnet.near.org',
+      explorerUrl: 'https://explorer.testnet.near.org',
     }
   case 'development':
   case 'testnet':
