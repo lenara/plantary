@@ -21,7 +21,7 @@ use rand_seeder::{Seeder};
 static ALLOC: near_sdk::wee_alloc::WeeAlloc<'_> = near_sdk::wee_alloc::WeeAlloc::INIT;
 
 mod token_bank;
-use token_bank::{TokenBank, TokenSet, TokenId};
+use token_bank::{NEP4, TokenBank, TokenSet, TokenId};
 
 mod constants;
 use constants::{VeggieType, VeggieSubType, vtypes, P_POOL, H_POOL, P_PRICES, H_PRICES};
@@ -315,6 +315,7 @@ impl PlantaryContract {
     }
 }
 
+// Our main contract object is PlantaryContract
 
 #[near_bindgen]
 #[derive(BorshDeserialize, BorshSerialize)]
@@ -359,7 +360,34 @@ impl PlantaryContract {
 
 }
 
-// use the attribute below for unit tests
+// Expose NEP-4 interface of TokenBank
+impl NEP4 for PlantaryContract {
+    fn grant_access(&mut self, escrow_account_id: AccountId) {
+        self.token_bank.grant_access(escrow_account_id)
+    }
+
+    fn revoke_access(&mut self, escrow_account_id: AccountId) {
+        self.token_bank.revoke_access(escrow_account_id)
+    }
+
+    fn transfer_from(&mut self, owner_id: AccountId, new_owner_id: AccountId, token_id: TokenId) {
+        self.token_bank.transfer_from(owner_id, new_owner_id, token_id)
+    }
+
+    fn transfer(&mut self, new_owner_id: AccountId, token_id: TokenId) {
+        self.token_bank.transfer(new_owner_id, token_id) 
+    }
+
+    fn check_access(&self, account_id: &AccountId) -> bool {
+        self.token_bank.check_access(account_id)
+    }
+
+    fn get_token_owner(&self, token_id: TokenId) -> String {
+        self.token_bank.get_token_owner(token_id)
+    }
+}
+
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -371,8 +399,14 @@ mod tests {
         near * 10u128.pow(24)
     }
 
+    fn joe() -> AccountId {
+        "joe.testnet".to_string()
+    }
     fn robert() -> AccountId {
         "robert.testnet".to_string()
+    }
+    fn mike() -> AccountId {
+        "mike.testnet".to_string()
     }
 
     // part of writing unit tests is setting up a mock context
@@ -599,5 +633,189 @@ mod tests {
         // count_owner_veggies() should panic for any unknown types
         let _foo = contract.get_owner_veggies_page(robert(), 23, 1, 1); // panic!
     }
+
+    // From here down I've just duplicated the unit tests in TokenBank.rs ,
+    // to test our wrapper methods around that object.
+
+        #[test]
+        fn grant_access() {
+            let context = get_context(robert(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let length_before = tb.account_gives_access.len();
+            assert_eq!(0, length_before, "Expected empty account access Map.");
+            tb.grant_access(mike());
+            tb.grant_access(joe());
+            let length_after = tb.account_gives_access.len();
+            assert_eq!(1, length_after, "Expected an entry in the account's access Map.");
+            let predecessor_hash = env::sha256(robert().as_bytes());
+            let num_grantees = tb.account_gives_access.get(&predecessor_hash).unwrap();
+            assert_eq!(2, num_grantees.len(), "Expected two accounts to have access to predecessor.");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Access does not exist."#
+        )]
+        fn revoke_access_and_panic() {
+            let context = get_context(robert(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            tb.revoke_access(joe());
+        }
+
+        #[test]
+        fn add_revoke_access_and_check() {
+            // Joe grants access to Robert
+            let mut context = get_context(joe(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            tb.grant_access(robert());
+
+            // does Robert have access to Joe's account? Yes.
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            let mut robert_has_access = tb.check_access(&joe());
+            assert_eq!(true, robert_has_access, "After granting access, check_access call failed.");
+
+            // Joe revokes access from Robert
+            context = get_context(joe(), env::storage_usage());
+            testing_env!(context);
+            tb.revoke_access(robert());
+
+            // does Robert have access to Joe's account? No
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            robert_has_access = tb.check_access(&joe());
+            assert_eq!(false, robert_has_access, "After revoking access, check_access call failed.");
+        }
+
+        #[test]
+        fn mint_token_get_token_owner() {
+            let context = get_context(robert(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            tb.mint_token(mike(), 19u64);
+            let owner = tb.get_token_owner(19u64);
+            assert_eq!(mike(), owner, "Unexpected token owner.");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Attempt to transfer a token with no access."#
+        )]
+        fn transfer_from_with_no_access_should_fail() {
+            // Mike owns the token.
+            // Robert is trying to transfer it to Robert's account without having access.
+            let context = get_context(robert(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(mike(), token_id);
+            tb.transfer_from(mike(), robert(), token_id.clone());
+        }
+
+        #[test]
+        fn transfer_from_with_escrow_access() {
+            // Escrow account: robert.testnet
+            // Owner account: mike.testnet
+            // New owner account: joe.testnet
+            let mut context = get_context(mike(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(mike(), token_id);
+            // Mike grants access to Robert
+            tb.grant_access(robert());
+
+            // Robert transfers the token to Joe
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            tb.transfer_from(mike(), joe(), token_id.clone());
+
+            // Check new owner
+            let owner = tb.get_token_owner(token_id.clone());
+            assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Attempt to transfer a token from wrong owner."#
+        )]
+        fn transfer_from_with_escrow_access_wrong_owner_id() {
+            // Escrow account: robert.testnet
+            // Owner account: mike.testnet
+            // New owner account: joe.testnet
+            let mut context = get_context(mike(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(mike(), token_id);
+            // Mike grants access to Robert
+            tb.grant_access(robert());
+
+            // Robert transfers the token to Joe
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            tb.transfer_from(robert(), joe(), token_id.clone());
+        }
+
+        #[test]
+        fn transfer_from_with_your_own_token() {
+            // Owner account: robert.testnet
+            // New owner account: joe.testnet
+
+            testing_env!(get_context(robert(), 0));
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(robert(), token_id);
+
+            // Robert transfers the token to Joe
+            tb.transfer_from(robert(), joe(), token_id.clone());
+
+            // Check new owner
+            let owner = tb.get_token_owner(token_id.clone());
+            assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
+        }
+
+        #[test]
+        #[should_panic(
+            expected = r#"Attempt to call transfer on tokens belonging to another account."#
+        )]
+        fn transfer_with_escrow_access_fails() {
+            // Escrow account: robert.testnet
+            // Owner account: mike.testnet
+            // New owner account: joe.testnet
+            let mut context = get_context(mike(), 0);
+            testing_env!(context);
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(mike(), token_id);
+            // Mike grants access to Robert
+            tb.grant_access(robert());
+
+            // Robert transfers the token to Joe
+            context = get_context(robert(), env::storage_usage());
+            testing_env!(context);
+            tb.transfer(joe(), token_id.clone());
+        }
+
+        #[test]
+        fn transfer_with_your_own_token() {
+            // Owner account: robert.testnet
+            // New owner account: joe.testnet
+
+            testing_env!(get_context(robert(), 0));
+            let mut tb = TokenBank::new();
+            let token_id = 19u64;
+            tb.mint_token(robert(), token_id);
+
+            // Robert transfers the token to Joe
+            tb.transfer(joe(), token_id.clone());
+
+            // Check new owner
+            let owner = tb.get_token_owner(token_id.clone());
+            assert_eq!(joe(), owner, "Token was not transferred after transfer call with escrow.");
+        }
 }
 

@@ -69,16 +69,19 @@ lazy_static! {
     "https://3bvdryfdm3sswevmvr3poka2ucda5dfqag3bz4td72affctbmaea.arweave.net/2Go44KNm5SsSrKx29ygaoIYOjLABthzyY_6AUophYAg", 
     "https://vwanp7rn32rioq6ofcvglo52sgdrctcfkc4v7uiy7bbimtzijz3q.arweave.net/rYDX_i3eoodDziiqZbu6kYcRTEVQuV_RGPhChk8oTnc",
     "https://arweave.net/VoJ1Wx6xTflalopLxOuj7TpO8pC0urYB-vLiZ1FxYno",
+    "https://arweave.net/33wa-6hW_vQAbkQ4a5ZXX7HGJMGR3M8ej-z9dvcnJ8k",
         ]);
         map.insert(ptypes::PORTRAIT, vec![
     "https://rsigfpny3j3uwohxfeo7tdkdvw6yhaefxt6d3uq7kajtpaqtdfwq.arweave.net/jJBivbjad0s49ykd-Y1Drb2DgIW8_D3SH1ATN4ITGW0",
     "https://arweave.net/fo--Wlh83Ka83zVQqliiwFq_4zbc1H7vrZNlvA_Gkek",
     "https://arweave.net/1oDuE6UNrNC4Y_aNfhp_Vde_II2ZIFsuRT1hBYbRydc",
+    "https://arweave.net/M7uwpTyRIZIohXBgIZUqoYDyxq1GyH3fkoT7CvN2iLE",
         ]);
         map.insert(ptypes::MONEY, vec![
     "https://rj32ukhcq4hdq7nux3rntp5ffdk3ff2kzjcalpy3mc7batjytoza.arweave.net/ineqKOKHDjh9tL7i2b-lKNWyl0rKRAW_G2C-EE04m7I",
     "https://b2zjlf2zplj5we2bdar6p6smu3o6fdu7o7ed23takt63lck6peoq.arweave.net/DrKVl1l609sTQRgj5_pMpt3ijp93yD1uYFT9tYleeR0",
     "https://arweave.net/q8RPmg2qf6nfE4Gc1at7bqOBuWbSsEtzxvdICb1NYzk",
+    "https://arweave.net/dPBN2DGba13xI7IFqBoczspsHbTXUvmZ9sjKIuhU28o",
         ]);
         map
     };
