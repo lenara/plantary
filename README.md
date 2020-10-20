@@ -90,81 +90,61 @@ Collect Art
 
 The plant NFT images will feature commissioned art from different artists. Plantary will open submissions for artists to send plant artwork. After submissions are approved, artists get a commission on first sales, and royalties on further secondary market sales.
 
-Deployment & Testing (10/10/2020)
+Deployment & Testing 
 -
 
-This is a work in progress!  
-As of 10/10, you can run a crude mockup of the app -- all it can do is login and logout.
-But it's interacting with your near wallet, and deploying a smart contract.
+You can deploy Plantary in your own testnet account. 
 
-* Check out the git repo, or open it in gitpod
+* Check out the git repo, or open it in gitpod.  
+
+(If you are using GitPod, you can sit back and watch while the next three steps happen automatically in your console.  Then skip down to "Log in to the testnet", below.)
 
 * Install all dependencies:
 ```
     yarn install
     rustup target add wasm32-unknown-unknown
 ```
-* Build and test the proejct:
+* Add the NEAR CLI to your searchpath.  
+
+The NEAR CLI should have been installed by 'yarn install'.  
+Here is the unix command to add it to your search path:
+```    
+    export PATH="./node_modules/near-cli/bin":$PATH
+```
+(Windows users do some other thing.)
+* Build and test the project:
 ```
     yarn build
     yarn test
 ```
+
+* Log in to the testnet with the NEAR CLI
+```
+    near login
+```
+  ... and click the link provided to open a web browser and authorize the CLI with your testnet account.
+
 * Start the app!
 ```
 		yarn start
 ```
 This will deploy the contract on the testnet, build the UI, and open a web browser.
+(Don't mint a plant yet, there's still one more step!)
+
 In the console you'll see a line something like this:
 ```
 Starting deployment. Account id: dev-1602291649659-5495547, node: https://rpc.testnet.near.org, helper: https://helper.testnet.near.org, file: ./out/main.wasm
 ```
 Take note of that Account id: dev-numbersnumbersnumbers.  You can use that for direct interaction with the contract you deployed, via the NEAR CLI.
 
-Below are instructions for manually interacting with the smart contract on the command line.
-This will be less important as we get those features into the app.  
-But for the time being, here are the NEAR CLI instructions for console use:
+* Initialize the smart contract!
 
-* First, get the NEAR CLI in your searchpath.  (Here is the unix/gitpod method; windows users do some other thing ...)
-```    
-export PATH="/workspace/plantary/node_modules/near-cli/bin/":$PATH
+The very first time your contract is deployed in a testnet account, it must be initialized.  Open a new terminal window and enter these commands, replacing YOURACCOUNTID with your account ID on the NEAR testnet, and YOURCONTRACTID with the Account ID from the previous step:
 ```
-* Log in to the testnet with the NEAR CLI
-```
-    near login
-```
-  ... and click the link provided to open your wallet to NEAR.
-
-* The very first time your contract runs, it must be initialized like so:
-```
+    export PATH="./node_modules/near-cli/bin":$PATH
     near call --accountId YOURACCOUNTID TESTCONTRACTID new '{"owner_id": "YOURACCOUNTID"}'
 ```
-* Then, to mint a plant in the blockchain, call mint_plant() like so:
-```
-    near call --accountId YOURACCOUNTID TESTCONTRACTID mint_plant '{"vsubtype": 2}'
-```
-  If that works, you should see something like this:
-```
-Scheduling a call: dev-1601436477182-8079303.mint_plant({"vsubtype": 2})
-Transaction Id AG5iRNasrPr1FSwxGnngVedkKABNBrKU7Sn6X4rYndu2
-To see the transaction in the transaction explorer, please open this url in your browser
-https://explorer.testnet.near.org/transactions/AG5iRNasrPr1FSwxGnngVedkKABNBrKU7Sn6X4rYndu2
-{ id: 0, vtype: 1, vsubtype: 2, parent: 0 }
-```
-
-That last bit of JSON is the data returned from the call. Nothing much there yet ... more soon!
-
-* Each new plant minted will have a unique id - they are non-fungible.
-
-* You can retrieve minted tokens by calling get_plant() with the token id. To get the first plant minted use:
-```
-    near call --accountId YOURACCOUNTID TESTCONTRACTID get_plant '{"vid": 0}'
-```
-The contract also provides a delete_plant() function if you must.
-
---- 
-
-The UI has not yet been connected to the contract but can be previewed at: http://www.lenara.com/plantary/
-
+* Now you can use the Plantary web app to connect your wallet, mint plants and gather harvests!
 
 Plantary Team:
 -
