@@ -361,6 +361,11 @@ impl PlantaryContract {
 }
 
 // Expose NEP-4 interface of TokenBank
+//
+// NOTE: these token_id values are specified by NEP4 as 64-bit unsigned ints,
+// which Javascript will truncate to 58 bits!
+// Nevertheless, this is the NEP4 API provided by NEAR.
+#[near_bindgen]
 impl NEP4 for PlantaryContract {
     fn grant_access(&mut self, escrow_account_id: AccountId) {
         self.token_bank.grant_access(escrow_account_id)
