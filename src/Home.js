@@ -74,7 +74,7 @@ export function Home() {
         </nav>
         <header className="masthead bg-primary text-white text-center">
             <div className="container d-flex align-items-center flex-column">
-							{/* Masthead Avatar Image*/}<img className="masthead-avatar mb-5" src={require("./assets/img/Screenshot 2020-09-20 at 20.32.10.png")} alt=""/>
+							{/* Masthead Avatar Image*/}<img className="masthead-avatar mb-5" src={require("./assets/img/plantaryapp.png")} alt=""/>
 								{/* Masthead Heading*/}
                 <h1 className="masthead-heading mb-0">Grow and Harvest NFTs</h1>
 								{/* Icon Divider*/}
