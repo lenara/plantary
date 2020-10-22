@@ -1,7 +1,33 @@
 # plantary
 Grow plants and harvest NFTs
 
-**Demo video:** http://www.lenara.com/plantary/Plantary-demo-video.mp4 
+**Demo video for ETHOnline:** https://www.youtube.com/watch?v=qVaP0gPcc14
+
+**Live Demo:** http://plantary.y0b.link/
+
+![](https://i.imgur.com/i0avWYf.png)
+
+
+**Grow plants and harvest NFTs.**
+
+Plantary is a game and art collecting platform mixed together. 
+
+
+**Each plant is a NFT and features commissioned artwork from different artists.**
+
+Plants have a unique DNA which influences the rarity and other traits in their harvests. 
+
+**Harvests are also NFTs that can be sold or traded.**
+
+
+- Mint plants and collect art.
+
+- Combine your plants DNA to mint harvests.
+
+- Collect, sell and trade your NFT harvests.
+
+Built on the NEAR blockchain with Rust
+
 
 How to Grow and Harvest NFTs
 -
@@ -146,11 +172,4 @@ The very first time your contract is deployed in a testnet account, it must be i
 ```
 * Now you can use the Plantary web app to connect your wallet, mint plants and gather harvests!
 
-Plantary Team:
--
-
-@lenara 
-@ivenka 
-@mari-gold 
-@myklemykle 
-@shad-k 
+* Disclaimer: don't get attached to your NFTs, this is the testnet, we are still working on the contract and they can disappear at any tim.
