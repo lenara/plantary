@@ -116,6 +116,12 @@ Collect Art
 
 The plant NFT images will feature commissioned art from different artists. Plantary will open submissions for artists to send plant artwork. After submissions are approved, artists get a commission on first sales, and royalties on further secondary market sales.
 
+Artist & Curator Interface
+-
+
+Artists submissions are converted to NFT metadata genes and persisted on the arweave permaweb.  
+Curators can then approve, price and publish new NFT options from these gene pools.
+
 Deployment & Testing 
 -
 
@@ -154,7 +160,7 @@ Here is the unix command to add it to your search path:
 ```
 		yarn start
 ```
-This will deploy the contract on the testnet, build the UI, and open a web browser.
+This will deploy the contract on the testnet, build the UI, start a test webserver, and open a web browser.
 (Don't mint a plant yet, there's still one more step!)
 
 In the console you'll see a line something like this:
@@ -173,3 +179,7 @@ The very first time your contract is deployed in a testnet account, it must be i
 * Now you can use the Plantary web app to connect your wallet, mint plants and gather harvests!
 
 * Disclaimer: don't get attached to your NFTs, this is the testnet, we are still working on the contract and they can disappear at any tim.
+
+* Genome interface (Work In Progress)
+
+While the test server is still running, open http://localhost:1234/intake.html to use the arweave intake form. 

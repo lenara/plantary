@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="">
+        <meta name="author" content="">
+        <title>Plantary - Sow Art to Reap NFTs</title>
+        <!-- Font Awesome icons (free version)-->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/js/all.min.js" crossorigin="anonymous"></script>
+        <!-- Core theme CSS (includes Bootstrap)-->
+        <link href="css/styles.css" rel="stylesheet">
+        <!-- Fonts CSS-->
+        <link rel="stylesheet" href="css/heading.css">
+        <link rel="stylesheet" href="css/body.css">
+				<!-- bootstrap datepicker -->
+				<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/css/bootstrap-datepicker.min.css" integrity="sha512-mSYUmp1HYZDFaVKK//63EcZq4iFWFjxSL+Z3T/aCt4IO9Cejm03q3NKKYN6pFQzY0SBOr8h+eCIAZHPXcpZaNw==" crossorigin="anonymous" />
+				<!-- file upload with preview -->
+				<link rel="stylesheet" type="text/css" href="https://unpkg.com/file-upload-with-preview@4.1.0/dist/file-upload-with-preview.min.css" />
+    </head>
+    <body id="page-top">
+        <nav class="navbar navbar-expand-lg bg-secondary fixed-top" id="mainNav">
+            <div class="container"><a class="navbar-brand js-scroll-trigger" href="#page-top">PLANTARY</a>
+                <button class="navbar-toggler navbar-toggler-right font-weight-bold bg-primary text-white rounded" type="button" data-toggle="collapse" data-target="#navbarResponsive" aria-controls="navbarResponsive" aria-expanded="false" aria-label="Toggle navigation">Menu <i class="fas fa-bars"></i></button>
+                <div class="collapse navbar-collapse" id="navbarResponsive">
+                    <ul class="navbar-nav ml-auto">
+											<!-- 
+                        <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#portfolio">MINT A PLANT</a>
+                        </li>
+                        <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#about">HARVEST</a>
+                        </li>
+                        <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#contact">ABOUT</a>
+                        </li>
+                        <li class="nav-item mx-0 mx-lg-1"><a class="nav-link py-3 px-0 px-lg-3 rounded js-scroll-trigger" href="#connect">MY PLANTS</a>
+                        </li>
+												-->
+                    </ul>
+                </div>
+            </div>
+        </nav>
+        <header class="masthead bg-primary text-white text-center">
+            <div class="container d-flex align-items-center flex-column">
+							<!-- Masthead Avatar Image--><!-- <img class="masthead-avatar mb-5" src="assets/img/portfolio/plantaryapp.png" alt=""> -->
+                <!-- Masthead Heading-->
+                <h1 class="masthead-heading mb-0">Sow Your Art to Reap NFTs</h1>
+                <!-- Icon Divider-->
+                <div class="divider-custom divider-light">
+                    <div class="divider-custom-line"></div>
+                    <div class="divider-custom-icon"><i class="fas fa-star"></i></div>
+                    <div class="divider-custom-line"></div>
+                </div>
+                <!-- Masthead Subheading-->
+                <p class="pre-wrap masthead-subheading font-weight-light mb-0">Upload your digital art to the Plantary</p>
+            </div>
+        </header>
+        <section class="page-section portfolio" id="portfolio">
+					<div class="container">
+<form id="sow">
+								<!-- standard bootstrap file input -->
+								<!--
+								<div class="form-group row">
+									<label for="image" class="col-3 col-form-label">Image (350x350px)</label> 
+									<div class="col-9">
+										<div class="input-group">
+											<div class="input-group-prepend">
+												<div class="input-group-text">
+													<i class="fa fa-image"></i>
+												</div>
+											</div> 
+											<div class="custom-file">
+												<input type="file" class="custom-file-input" required="required" id="image">
+												<label class="custom-file-label" for="image">Choose file</label>
+											</div>
+										</div>
+									</div>
+								</div>
+								-->
+								<!-- file upload with preview -->
+								<div class="custom-file-container" data-upload-id="myUniqueUploadId">
+									<div class="form-group row">
+										<label for="image2" class="col-3 col-form-label custom-file-container__image-clear">Image (350x350px)</label>
+										<!--
+														<label for="image2">Image (350x350px)
+																<a
+																		href="javascript:void(0)"
+																		class="col-3 col-form-label custom-file-container__image-clear"
+																		title="Clear Image"
+																		>&times;</a
+																		>
+														</label>
+														-->
+										<div class="col-9">
+											<div class="input-group">
+												<div class="input-group-prepend">
+													<div class="input-group-text">
+														<i class="fa fa-image"></i>
+													</div>
+												</div> 
+												<div class="custom-file">
+														<!-- <label class="custom-file-label" for="image">Choose file</label> -->
+														<!-- <label class="custom-file-container__custom-file custom-file-label" for="image2"> -->
+														<label class="custom-file-label" for="image2">
+																<input
+																		id="image2"
+																		type="file"
+																		class="custom-file-input custom-file-container__custom-file__custom-file-input"
+																		accept="*"
+																		required="required"
+																		aria-label="Choose File"
+																/>
+																<input type="hidden" name="MAX_FILE_SIZE" value="10485760" />
+																<span
+																		class="custom-file-container__custom-file__custom-file-control"
+																></span>
+														</label>
+												</div>
+												<!-- <div class="custom-file-container__image-preview"></div> -->
+											</div>
+										</div>
+									</div>
+									<div class="form-group row">
+										<div class="col-3"></div>
+										<div class="col-9">
+													<div class="custom-file-container__image-preview"></div>
+										</div>
+									</div>
+								</div>
+								<div class="form-group row">
+									<label for="name" class="col-3 col-form-label">Title</label> 
+									<div class="col-9">
+										<div class="input-group">
+											<div class="input-group-prepend">
+												<div class="input-group-text">
+													<i class="fa fa-tag"></i>
+												</div>
+											</div> 
+											<input id="name" name="name" type="text" aria-describedby="nameHelpBlock" required="required" class="form-control">
+										</div> 
+									</div>
+								</div>
+								<div class="form-group row">
+									<label for="artist" class="col-3 col-form-label">Artist</label> 
+									<div class="col-9">
+										<div class="input-group">
+											<div class="input-group-prepend">
+												<div class="input-group-text">
+													<i class="fa fa-paint-brush"></i>
+												</div>
+											</div> 
+											<input id="artist" name="artist" type="text" class="form-control">
+										</div>
+									</div>
+								</div>
+								<div class="form-group row">
+									<label for="description" class="col-3 col-form-label">Description</label> 
+									<div class="col-9">
+										<textarea id="description" name="description" cols="40" rows="5" class="form-control" required="required"></textarea>
+									</div>
+								</div>
+								<div class="form-group row">
+									<label for="created" class="col-3 col-form-label">Created on</label> 
+									<div class="col-9">
+										<div class="input-group">
+											<div class="input-group-prepend">
+												<div class="input-group-text">
+													<i class="fa fa-calendar"></i>
+												</div>
+											</div> 
+											<input id="created" name="created" type="text" class="form-control" data-provide="datepicker" required="required">
+										</div>
+									</div>
+								</div>
+								<div class="form-group row">
+									<label class="col-3">Adult content?</label> 
+									<div class="col-9">
+										<div class="form-check form-check-inline">
+											<input name="visibility" id="visibility_0" type="checkbox" class="form-check-input" value="unsafe"> 
+											<label for="visibility_0" class="form-check-label">NSFW</label>
+										</div>
+									</div>
+								</div> 
+								<div class="form-group row">
+									<label for="arkey" class="col-3 col-form-label">Arweave key (JSON)</label> 
+									<div class="col-9">
+										<textarea id="arkey" name="arkey" cols="40" rows="3" class="form-control" required="required"></textarea>
+									</div>
+								</div>
+								<div class="form-group row">
+									<div class="offset-3 col-9">
+										<button name="submit" type="submit" class="btn btn-primary">Submit</button>
+									</div>
+								</div>
+</form>
+								<div id="progressblock" class="row" style="display: none;">
+									<div class="col-3 col-form-label">Deployment progress:</div>
+									<div id="progress" class="col-9">
+									</div>
+								</div>
+								<div id="formResetButton" class="form-group row" style="display:inline;">
+									<div class="offset-3 col-9">
+										<button name="reset" type="button" class="btn btn-primary">Next!</button>
+									</div>
+								</div>
+						</div>
+					</section>
+				
+
+					<!-- Copyright Section-->
+					<section class="copyright py-4 text-center text-white">
+							<div class="container"><small class="pre-wrap">Copyright © Plantary 2020 - Untitled NFT Hackathon</small></div>
+					</section>
+					<!-- Scroll to Top Button (Only visible on small and extra-small screen sizes)-->
+					<div class="scroll-to-top d-lg-none position-fixed"><a class="js-scroll-trigger d-block text-center text-white rounded" href="#page-top"><i class="fa fa-chevron-up"></i></a></div>
+					<!-- Bootstrap core JS-->
+					<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+					<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.4.1/js/bootstrap.bundle.min.js"></script>
+					<!-- Third party plugin JS-->
+					<script src="https://cdnjs.cloudflare.com/ajax/libs/jquery-easing/1.4.1/jquery.easing.min.js"></script>
+					<!-- Core theme JS-->
+					<!-- script src="js/scripts.js"></script -->
+					<!-- datepicker -->
+					<script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datepicker/1.9.0/js/bootstrap-datepicker.min.js" integrity="sha512-T/tUfKSV1bihCnd+MxKD0Hm1uBBroVYBOYSk1knyvQ9VyZJpc/ALb4P0r6ubwVPSGB2GvjeoMAJJImBG12TiaQ==" crossorigin="anonymous"></script>
+					<!-- file upload with preview -->
+					<script src="https://unpkg.com/file-upload-with-preview@4.1.0/dist/file-upload-with-preview.min.js"></script>
+					<!-- ARWeave -->
+					<script src="https://unpkg.com/arweave/bundles/web.bundle.js"></script>
+					<script>
+							// Deploy a Plantary seed genome to Arweave:
+
+							// jq find stuff:
+						let theForm = $('#sow');
+						let progressLog = $('#progress');
+						let progressBlock =	$('#progressblock');
+
+							// utility: convert form to json
+						function objectifyForm(formArray) {
+							//serialize data function
+							var returnArray = {};
+							for (var i = 0; i < formArray.length; i++){
+									returnArray[formArray[i]['name']] = formArray[i]['value'];
+							}
+							return returnArray;
+						}
+
+							// utility: clear the whole form except the key
+						function resetForm(e){
+							e.preventDefault();
+							$('#sow input,textarea:not([name="arkey"])').val('');
+							clearProgress();
+							resetButton.hide();
+						}
+						let resetButton = $('#formResetButton');
+						resetButton.click(resetForm);
+
+							// utility: log infos to progress block
+						function logProgress(s){
+							progressBlock.show(); progressLog.append(s + "<br\>"); console.log(s);
+						}
+
+						function clearProgress(){
+							progressBlock.hide(); progressLog.empty();
+						}
+
+							// init file uploader
+						var upload = new FileUploadWithPreview("myUniqueUploadId", {
+								showDeleteButtonOnImages: true,
+						});
+
+							// init arweave
+						const arweaveHost = 'testnet.arweave.net'; // testnet
+						//const arweaveHost = 'arweave.net'; // mainnet
+
+						const arweave = window.Arweave.init({
+							host: arweaveHost, 
+						});
+
+							// utility: return link to URL for our tx
+
+						function txToUrl(txid) {
+							return "https://" + arweaveHost + '/' + txid
+						}
+						function txToLink(txid) {
+							let url = txToUrl(txid);
+							return '<a href="' + url + '" target="_blank">' + url + '</a>';
+						}
+
+							// form submit handler:
+						$('#sow').submit(function(e){
+
+							e.preventDefault();
+							console.log(objectifyForm($(e.target).serializeArray())); //DEBUG
+
+
+							var imageFile = upload.cachedFileArray[0];
+							var reader = new FileReader();
+							var key = JSON.parse($('#arkey').val());
+
+							reader.onload = async function() {
+
+								// Two step process: 
+								// First is a data-upload of the image to arweave:
+								let transaction1 = await arweave.createTransaction({ data: reader.result }, key);
+								transaction1.addTag('Content-Type', imageFile.type);
+
+								await arweave.transactions.sign(transaction1, key);
+
+								let arUploader = await arweave.transactions.getUploader(transaction1);
+
+								while (!arUploader.isComplete) {
+									await arUploader.uploadChunk();
+									logProgress(`deploying image: ${arUploader.pctComplete}% complete, ${arUploader.uploadedChunks}/${arUploader.totalChunks}`);
+								}
+
+								logProgress("image deployed: " + txToLink(transaction1.id));
+
+								// Then a JSON upload that includes the arweave URL of the image:
+								let nftObj = objectifyForm( $(e.target).serializeArray());
+								nftObj.image = txToUrl(transaction1.id);
+								nftObj.visibility = nftObj.visibility || "safe";
+								delete nftObj.MAX_FILE_SIZE;
+
+								let transaction2 = await arweave.createTransaction({ data: JSON.stringify(nftObj) }, key);
+								transaction2.addTag('Content-Type', 'application/json');
+
+								await arweave.transactions.sign(transaction2, key);
+								console.log("transaction 2:");
+								console.log(transaction2);
+
+								arUploader = await arweave.transactions.getUploader(transaction2);
+
+								while (!arUploader.isComplete) {
+									await arUploader.uploadChunk();
+									logProgress(`deploying metadata: ${arUploader.pctComplete}% complete, ${arUploader.uploadedChunks}/${arUploader.totalChunks}`);
+								}
+
+								logProgress("metadata deployed: " + txToLink(transaction2.id));
+								logProgress("done!");
+								resetButton.show();
+							}
+
+							// maybe this buffer already exists in upload, but i can't find it ...
+							reader.readAsArrayBuffer(imageFile); // triggers reader.load ...
+						});
+
+				</script>
+			</body>
+	</html>
