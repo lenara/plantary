@@ -7,7 +7,7 @@
 /// Implements blockchain ledger for plants and their fruit
 ///
 
-use near_sdk::{env, near_bindgen, AccountId, Balance};
+use near_sdk::{env, near_bindgen, AccountId, Balance, json_types};
 use near_sdk::collections::UnorderedMap;
 
 use near_sdk::borsh::{self, BorshDeserialize, BorshSerialize};
@@ -59,7 +59,7 @@ impl Veggie {
 
 // this is the external, JSON-compatible version for method calls.  (u64s are strings.)
 
-pub type TokenJSON = String;
+pub type TokenJSON = json_types::U64;
 
 #[derive(PartialEq, Clone, Debug, Serialize, BorshDeserialize, BorshSerialize)]
 pub struct VeggieJSON {
@@ -67,18 +67,18 @@ pub struct VeggieJSON {
     pub vtype: VeggieType,
     pub vsubtype: VeggieSubType,
     pub parent: TokenJSON,
-    pub dna: String,
+    pub dna: json_types::U64,
     pub meta_url: String,
 }
 
 impl From<Veggie> for VeggieJSON {
     fn from(v: Veggie) -> Self {
         Self {
-            vid: v.vid.to_string(),
+            vid: v.vid.into(),
             vtype: v.vtype,
             vsubtype: v.vsubtype,
-            parent: v.parent.to_string(),
-            dna: v.dna.to_string(),
+            parent: v.parent.into(),
+            dna: v.dna.into(),
             meta_url: v.meta_url
         }
     }
@@ -88,11 +88,11 @@ impl From<Veggie> for VeggieJSON {
 impl From<VeggieJSON> for Veggie {
     fn from(v: VeggieJSON) -> Self {
         Self {
-            vid: v.vid.parse::<TokenId>().unwrap(),
+            vid: v.vid.into(),
             vtype: v.vtype,
             vsubtype: v.vsubtype,
-            parent: v.parent.parse::<TokenId>().unwrap(),
-            dna: v.dna.parse::<u64>().unwrap(),
+            parent: v.parent.into(),
+            dna: v.dna.into(),
             meta_url: v.meta_url,
         }
     }
@@ -137,17 +137,17 @@ impl Veggies for PlantaryContract {
     }
 
     fn get_veggie_json(&self, vid: TokenJSON) -> VeggieJSON {
-        self.get_veggie(vid.parse::<TokenId>().unwrap()).into()
+        self.get_veggie(vid.into()).into()
     }
 
     fn delete_veggie_json(&mut self, vid: TokenJSON){
-        self.delete_veggie(vid.parse::<TokenId>().unwrap()).into()
+        self.delete_veggie(vid.into()).into()
     }
 
     #[payable]
     fn harvest_plant_json(&mut self, parent_id_json: TokenJSON) -> VeggieJSON {
         // confirm that we were paid the right amount:
-        let parent_id = parent_id_json.parse::<TokenId>().unwrap();
+        let parent_id = TokenId::from(parent_id_json);
         let parent = self.get_veggie(parent_id);
         self.paid_up(H_PRICES[parent.vsubtype as usize]);
 
@@ -348,14 +348,13 @@ impl PlantaryContract {
         }
     }
 
-    pub fn get_owner_tokens(&self, owner_id: &AccountId) -> Vec<TokenId> {
-        self.token_bank.get_owner_tokens(&owner_id).to_vec()
+    pub fn get_owner_tokens(&self, owner_id: &AccountId) -> Vec<TokenJSON> {
+        self.token_bank.get_owner_tokens(&owner_id).iter().map(|t| TokenJSON::from(t)).collect()
     }
 
-    // debug
-    pub fn get_veggie_keys(&self) -> Vec<String> {
-        //self.veggies.keys().cloned().collect()
-        self.veggies.keys().map(|i| i.to_string()).collect()
+    // debug 
+    pub fn get_veggie_keys(&self) -> Vec<TokenJSON> {
+        self.veggies.keys().map(|i| TokenJSON::from(i)).collect()
     }
 
 }
@@ -495,7 +494,7 @@ mod tests {
         assert_eq!(v.vtype, vtypes::PLANT, "vtype not saved");
         assert_eq!(v.vsubtype, ptypes::MONEY, "vsubtype not found.");
             // find?
-        let vid_json = v.vid.to_string();
+        let vid_json = TokenJSON::from(v.vid);
             // confirm
         let _foundv: Veggie = contract.get_veggie_json(vid_json.clone()).into(); // should not panic
         assert_eq!(v, _foundv, "veggie did not fetch right");
