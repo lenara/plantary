@@ -1,9 +1,11 @@
 # plantary
 Grow plants and harvest NFTs
 
-**Demo video for ETHOnline:** https://www.youtube.com/watch?v=qVaP0gPcc14
+**Demo video:** https://youtu.be/e5VeB9FThwA
+-
 
 **Live Demo:** http://plantary.y0b.link/
+-
 
 ![](https://i.imgur.com/i0avWYf.png)
 
