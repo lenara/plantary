@@ -3,6 +3,7 @@
 # dependencies
 package-lock.json
 .cache
+.env
 # check in eventually?
 dist
 **/node_modules

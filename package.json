@@ -9,7 +9,7 @@
     "build:web": "npm run build:index && npm run build:intake",
     "build:index": "parcel build src/index.html --public-url ./",
     "build:intake": "parcel build src/intake.html --public-url ./",
-		"dev:deploy": "npm run build && npm run dev:deploy:contract && npm run dev:deploy:pages",
+    "dev:deploy": "npm run build && npm run dev:deploy:contract && npm run dev:deploy:pages",
     "dev:deploy:contract": "near dev-deploy",
     "deploy:contract": "near deploy",
     "deploy:pages": "rsync -v dist/* plantary@blachly.dreamhost.com:plantary.y0b.link/",
@@ -18,7 +18,10 @@
     "start": "echo The app is starting! It will automatically open in your browser when ready && env-cmd -f ./neardev/dev-account.env parcel src/index.html --open",
     "dev": "nodemon --watch assembly -e ts --exec \"npm run start\"",
     "test": "yarn test:unit:rs",
-    "test:unit:rs": "(cd contracts/rust && cargo test -- --nocapture --color always)"
+    "test:unit:rs": "(cd contracts/rust && cargo test -- --nocapture --color always)",
+    "check_env": "test -n \"$BETA_CONTRACT_NAME\" ### \". ./.env\" in base directory to load important config!",
+    "push:beta": "npm run check_env && npm run build && rsync dist/* $BETA_RSYNC_TARGET",
+    "deploy:beta": "npm run check_env && npm run deploy && rsync dist/* $BETA_RSYNC_TARGET"
   },
   "devDependencies": {
     "@babel/preset-env": "^7.9.5",
